@@ -25,7 +25,7 @@ class Ticket(Base):
 class Tarifa(Base):
     __tablename__ = "tarifas"
     __table_args__ = (
-        CheckConstraint("modo_calculo IN ('BLOQUE_FIJO', 'PROPORCIONAL', 'TRAMOS', 'FRACCION')", name='chk_tarifa_modo'),
+        CheckConstraint("modo_calculo IN ('BLOQUE_FIJO', 'PROPORCIONAL', 'TRAMOS', 'FRACCION', 'BASE_MAS_EXCEDENTE_PROPORCIONAL')", name='chk_tarifa_modo'),
         {"schema": "parking"}
     )
 

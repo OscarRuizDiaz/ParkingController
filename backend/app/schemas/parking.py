@@ -30,7 +30,22 @@ class TarifaBaseResponse(BaseSchema):
     id_tarifa: int
     nombre: str
     valor_base: Decimal
-    modo_calculo: str
+    modo_calculo: Literal['BLOQUE_FIJO', 'BASE_MAS_EXCEDENTE_PROPORCIONAL']
+
+class TarifaUpdate(BaseSchema):
+    nombre: Optional[str] = None
+    modo_calculo: Literal['BLOQUE_FIJO', 'BASE_MAS_EXCEDENTE_PROPORCIONAL']
+    valor_base: Decimal
+    fraccion_minutos: int
+    redondea_hacia_arriba: bool
+    configuracion_json: Optional[Dict[str, Any]] = None
+
+class TarifaResponse(TarifaBaseResponse):
+    fraccion_minutos: int
+    redondea_hacia_arriba: bool
+    configuracion_json: Optional[Dict[str, Any]] = None
+    activo: bool
+    vigencia_desde: datetime
 
 # === LIQUIDACION SCHEMAS ===
 

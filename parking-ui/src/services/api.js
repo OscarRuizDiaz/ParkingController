@@ -75,4 +75,26 @@ export const apiService = {
 
     return await response.json();
   },
+  // === TARIFAS ===
+  async getTarifaActiva() {
+    const response = await fetch(`${BASE_URL}/tarifas/activa`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Error obteniendo tarifa activa");
+    }
+    return await response.json();
+  },
+
+  async updateTarifaActiva(payload) {
+    const response = await fetch(`${BASE_URL}/tarifas/activa`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Error actualizando tarifa");
+    }
+    return await response.json();
+  }
 };

@@ -1,4 +1,3 @@
-import math
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -6,15 +5,15 @@ from sqlalchemy.orm import Session
 from app.models.parking import Ticket, Tarifa, Liquidacion
 from app.repositories.parking_repo import ticket_repo, tarifa_repo, liquidacion_repo
 from app.schemas.parking import TicketCreate, LiquidacionCalculadaResponse
+from app.services.tarifador import Tarifador
 
 class ParkingService:
     """
     Servicio de capa de negocio para el dominio de Parking.
-    En esta fase inicial, contiene la estructura base para manejo de tickets
-    y previsualización de cálculos; el motor tarifario complejo se añadirá en la siguiente iteración.
     """
     def __init__(self, db: Session):
         self.db = db
+        self.tarifador = Tarifador()
 
     def registrar_ticket_recibido(self, ticket_in: TicketCreate) -> Ticket:
         """
@@ -47,7 +46,7 @@ class ParkingService:
         if not ticket:
             raise ValueError("Ticket no encontrado.")
             
-        # --- NUEVA LÓGICA DE CONGELAMIENTO ---
+        # --- LÓGICA DE CONGELAMIENTO (HISTÓRICO) ---
         if ticket.estado in ["LIQUIDADO", "COBRADO", "FACTURADO"]:
             ultima_liq = liquidacion_repo.get_ultima_by_ticket(self.db, ticket.id_ticket)
             if not ultima_liq:
@@ -56,7 +55,7 @@ class ParkingService:
             return LiquidacionCalculadaResponse(
                 codigo_ticket=ticket.codigo_ticket,
                 minutos_calculados=ultima_liq.minutos,
-                tolerancia_aplicada=False, # Por ahora no aplica en este flujo
+                tolerancia_aplicada=False,
                 bloques=ultima_liq.bloques,
                 monto_a_cobrar=ultima_liq.monto_bruto,
                 detalle_calculo=ultima_liq.detalle_calculo_json or {},
@@ -72,33 +71,24 @@ class ParkingService:
         
         # Calcular diferencia en minutos bruta
         diferencia = salida_real - ticket.fecha_hora_ingreso
-        minutos = int(diferencia.total_seconds() / 60)
-        if minutos < 0:
-            minutos = 0
+        minutos = max(0, int(diferencia.total_seconds() / 60))
             
-        # Calcular bloques usando redondeo hacia arriba basado en fraccion_minutos. Cobro mínimo 1 bloque.
-        fraccion = tarifa.fraccion_minutos if tarifa.fraccion_minutos > 0 else 60
-        bloques = max(1, math.ceil(minutos / fraccion))
+        # DELEGACIÓN AL MOTOR TARIFARIO
+        res_calculo = self.tarifador.calcular(tarifa, minutos)
             
-        monto = tarifa.valor_base * bloques
-        
         return LiquidacionCalculadaResponse(
             codigo_ticket=ticket.codigo_ticket,
             minutos_calculados=minutos,
             tolerancia_aplicada=False,
-            bloques=bloques,
-            monto_a_cobrar=monto,
-            detalle_calculo={
-                "tarifa_aplicada": tarifa.nombre,
-                "mensaje": f"Cálculo: {minutos} min / {tarifa.fraccion_minutos} min por bloque = {bloques} bloque(s)"
-            },
+            bloques=res_calculo["cant_bloques"],
+            monto_a_cobrar=res_calculo["monto_total"],
+            detalle_calculo=res_calculo["detalle"],
             modo_visualizacion="DINAMICO"
         )
 
     def generar_liquidacion(self, codigo_ticket: str, id_usuario_creador: Optional[int] = None, commit: bool = True) -> Liquidacion:
         """
         Persiste el cálculo de una liquidación real en la base de datos con estado CALCULADO.
-        Si commit=False, la transacción debe ser manejada externamente.
         """
         ticket = self.buscar_ticket(codigo_ticket)
         if not ticket:
@@ -126,8 +116,6 @@ class ParkingService:
             }
             
             liquidacion = liquidacion_repo.create(self.db, liq_data)
-            
-            # Transición de estado del ticket
             ticket_repo.update(self.db, ticket, {"estado": "LIQUIDADO"})
             
             if commit:

@@ -19,7 +19,9 @@ import {
   CircleDollarSign,
   Loader2,
   AlertCircle,
-  Hash
+  Hash,
+  Settings,
+  Zap
 } from "lucide-react";
 
 const formatter = new Intl.NumberFormat("es-PY");
@@ -138,6 +140,7 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
     { id: "caja", label: "Caja Principal", restricted: false },
     { id: "resultado", label: "Resumen de Cobro", restricted: true },
     { id: "cliente", label: "Facturación Fiscal", restricted: true },
+    { id: "tarifa", label: "Motor Tarifario", restricted: false },
   ];
 
   return (
@@ -179,13 +182,12 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
                     key={screen.id}
                     onClick={() => !isDisabled && setCurrentScreen(screen.id)}
                     disabled={isDisabled}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition ${
-                      currentScreen === screen.id
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : isDisabled
+                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition ${currentScreen === screen.id
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : isDisabled
                         ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed"
                         : "bg-white text-slate-800 hover:bg-slate-100"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       {screen.label}
@@ -224,12 +226,12 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
   );
 }
 
-function CajaPrincipal({ 
-  ticket, 
-  searchCode, 
-  setSearchCode, 
-  onSearch, 
-  medioPago, 
+function CajaPrincipal({
+  ticket,
+  searchCode,
+  setSearchCode,
+  onSearch,
+  medioPago,
   setMedioPago,
   onProcessPayment,
   alert
@@ -268,7 +270,7 @@ function CajaPrincipal({
                 </div>
               </div>
               <div className="flex items-end">
-                <button 
+                <button
                   className="h-12 rounded-xl bg-slate-900 px-8 text-white hover:bg-slate-800 disabled:opacity-50 shadow-sm transition-all active:scale-95"
                   onClick={() => onSearch(searchCode)}
                   disabled={alert?.type === "loading" || !searchCode}
@@ -286,10 +288,10 @@ function CajaPrincipal({
                 {alert && <StatusAlert alert={alert} />}
               </AnimatePresence>
               {ticket?.modo_visualizacion === "HISTORICO" && !alert && (
-                 <motion.div initial={{opacity:0, scale:0.98}} animate={{opacity:1, scale:1}} className="mt-4 flex items-center gap-3 rounded-xl bg-blue-50 border border-blue-100 p-4 text-blue-800 text-sm font-medium">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <span>Valores congelados al momento del cobro. Cálculo histórico.</span>
-                 </motion.div>
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 flex items-center gap-3 rounded-xl bg-blue-50 border border-blue-100 p-4 text-blue-800 text-sm font-medium">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>Valores congelados al momento del cobro. Cálculo histórico.</span>
+                </motion.div>
               )}
             </div>
 
@@ -353,7 +355,7 @@ function CajaPrincipal({
             </div>
             <SummaryRow label="Medio Elegido" value={medioPago} />
           </div>
-          
+
           <div className="mt-8 rounded-xl bg-amber-50 border border-amber-100 p-4 text-amber-800 text-xs flex gap-3">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p>Valide el ticket físico antes de proceder. Una vez confirmado, el ticket queda bloqueado para facturación fiscal.</p>
@@ -363,7 +365,7 @@ function CajaPrincipal({
 
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-          <motion.div initial={{scale:0.95, opacity: 0}} animate={{scale: 1, opacity: 1}} className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
             <h3 className="text-2xl font-bold text-slate-900 text-center">Registrar Ingreso</h3>
             <p className="mt-2 text-sm text-slate-500 text-center">
               Confirme la recepción del dinero según el monto indicado.
@@ -380,7 +382,7 @@ function CajaPrincipal({
             </div>
 
             <div className="mt-8 flex flex-col gap-3">
-              <button 
+              <button
                 className="w-full rounded-2xl bg-slate-900 py-4 text-lg font-bold text-white hover:bg-slate-800 shadow-lg shadow-slate-200"
                 onClick={async () => {
                   const success = await onProcessPayment();
@@ -428,7 +430,7 @@ function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
       <div className="grid gap-6 lg:grid-cols-3 print:grid-cols-1">
         <div className="lg:col-span-2 rounded-2xl border bg-white shadow-sm print:border-none print:shadow-none">
           <div className="flex flex-col items-center justify-center gap-4 p-10 text-center">
-            <StatusAlert 
+            <StatusAlert
               alert={{
                 title: "Cobro registrado correctamente",
                 message: "La operación fue guardada con éxito. El ticket ha sido marcado como cobrado.",
@@ -446,14 +448,14 @@ function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
             </div>
 
             <div className="flex flex-wrap gap-4 pt-8 print:hidden">
-              <button 
+              <button
                 className="rounded-2xl bg-blue-600 px-8 py-4 text-white hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all font-bold flex items-center gap-3 active:scale-95"
                 onClick={() => onContinueToInvoicing()}
               >
                 <ArrowRight className="h-5 w-5" />
                 Continuar a Facturación Fiscal
               </button>
-              <button 
+              <button
                 className="rounded-2xl border-2 border-slate-200 px-6 py-4 text-slate-700 hover:bg-slate-50 transition-all font-bold flex items-center gap-3 active:scale-95"
                 onClick={() => window.print()}
               >
@@ -477,18 +479,216 @@ function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
               </div>
             </div>
           </div>
-          
-          <button 
-             onClick={() => window.location.reload()}
-             className="w-full rounded-2xl border-2 border-dashed border-slate-300 py-4 text-slate-400 font-bold hover:bg-white hover:border-slate-400 transition-all"
+
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full rounded-2xl border-2 border-dashed border-slate-300 py-4 text-slate-400 font-bold hover:bg-white hover:border-slate-400 transition-all"
           >
-             Nueva Operación de Caja
+            Nueva Operación de Caja
           </button>
         </aside>
       </div>
-      
+
       {/* Componente oculto para impresión */}
       <PrintableReceipt paymentResult={paymentResult} />
+    </div>
+  );
+}
+
+function TarifaScreen({ alert, setAlert }) {
+  const [tarifa, setTarifa] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorTarifa, setErrorTarifa] = useState(null);
+  const [simMinutes, setSimMinutes] = useState(65);
+
+  const fetchTarifa = async () => {
+    setIsLoading(true);
+    setErrorTarifa(null);
+    try {
+      const data = await apiService.getTarifaActiva();
+      setTarifa(data);
+      setAlert(null); // Limpiar alertas globales si la carga es exitosa
+    } catch (err) {
+      console.error("Error cargando tarifa:", err);
+      setErrorTarifa(err.message || "No se pudo recuperar la tarifa activa.");
+      setAlert({ title: "Error de Conexión", message: err.message, type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTarifa();
+  }, []);
+
+  const handleSave = async () => {
+    if (!tarifa) return;
+    setAlert(getLoadingMessage("cobrando"));
+    try {
+      const payload = {
+        nombre: tarifa.nombre,
+        modo_calculo: tarifa.modo_calculo,
+        valor_base: Number(tarifa.valor_base),
+        fraccion_minutos: Number(tarifa.fraccion_minutos),
+        redondea_hacia_arriba: tarifa.redondea_hacia_arriba,
+        configuracion_json: tarifa.configuracion_json
+      };
+      await apiService.updateTarifaActiva(payload);
+      setAlert({ title: "Configuración Guardada", message: "La nueva tarifa se aplicará a todos los tickets pendientes.", type: "success" });
+    } catch (err) {
+      setAlert({ title: "Error de Guardado", message: err.message, type: "error" });
+    }
+  };
+
+  const simulation = useMemo(() => {
+    if (!tarifa) return null;
+    const base = Number(tarifa.valor_base);
+    const fraccion = Number(tarifa.fraccion_minutos);
+
+    if (tarifa.modo_calculo === "BLOQUE_FIJO") {
+      const bloques = Math.ceil(simMinutes / fraccion);
+      return { total: base * bloques, detalle: `${bloques} bloque(s) de ${fraccion} min` };
+    } else {
+      const minsExcedentes = Math.max(0, simMinutes - fraccion);
+      const valorMinuto = base / fraccion;
+      const excedente = Math.round(minsExcedentes * valorMinuto);
+      return { total: base + excedente, detalle: `Base (${base}) + ${minsExcedentes} min excedentes (${excedente})` };
+    }
+  }, [tarifa, simMinutes]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-slate-400" />
+        <p className="text-slate-500 font-medium animate-pulse">Obteniendo configuración activa...</p>
+      </div>
+    );
+  }
+
+  if (errorTarifa || !tarifa) {
+    return (
+      <div className="mx-auto max-w-2xl p-10 bg-white rounded-3xl border border-slate-100 shadow-sm text-center">
+        <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 flex items-center justify-center gap-3">
+          <AlertCircle className="h-6 w-6" />
+          <span className="font-bold">{errorTarifa || "Error de configuración"}</span>
+        </div>
+        <p className="text-slate-500 mb-8">No pudimos conectar con el motor tarifario. Verifique que el servidor esté en línea.</p>
+        <button
+          onClick={fetchTarifa}
+          className="w-full bg-slate-900 text-white rounded-2xl py-4 font-bold hover:shadow-lg transition-all active:scale-95"
+        >
+          Reintentar Conexión
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Motor Tarifario</h1>
+          <p className="text-slate-500">Configure las reglas de cálculo de importe para el estacionamiento.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
+        >
+          Guardar Cambios
+        </button>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <div className="space-y-6 rounded-3xl border bg-white p-8 shadow-sm">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Settings className="h-5 w-5 text-slate-400" /> Parámetros Base
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Nombre de Tarifa</label>
+              <input
+                className="h-12 w-full rounded-xl border border-slate-200 px-4 font-medium outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                value={tarifa.nombre || ""}
+                onChange={(e) => setTarifa({ ...tarifa, nombre: e.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-4 grid-cols-2">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Monto Base (Gs)</label>
+                <input
+                  type="number"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                  value={tarifa.valor_base || 0}
+                  onChange={(e) => setTarifa({ ...tarifa, valor_base: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Bloque Base (Min)</label>
+                <input
+                  type="number"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                  value={tarifa.fraccion_minutos || 0}
+                  onChange={(e) => setTarifa({ ...tarifa, fraccion_minutos: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Método de Cálculo</label>
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { id: "BLOQUE_FIJO", label: "Bloque Fijo (Redondeo arriba)", desc: "40 min = 1 bloque, 61 min = 2 bloques" },
+                  { id: "BASE_MAS_EXCEDENTE_PROPORCIONAL", label: "Base + Excedente Proporcional", desc: "Base por 1er bloque + cargo por cada min adicional" }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setTarifa({ ...tarifa, modo_calculo: mode.id })}
+                    className={`p-4 text-left rounded-2xl border-2 transition-all ${tarifa.modo_calculo === mode.id ? "border-slate-900 bg-slate-50" : "border-slate-100 hover:border-slate-200"}`}
+                  >
+                    <div className="font-bold text-slate-900">{mode.label}</div>
+                    <div className="text-xs text-slate-500 mt-1">{mode.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-3xl border bg-slate-900 p-8 text-white shadow-xl shadow-slate-200">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
+              <Zap className="h-5 w-5 text-amber-400" /> Simulador en Vivo
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-4">Tiempo de Estancia (Minutos)</label>
+                <input
+                  type="range" min="1" max="300"
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  value={simMinutes}
+                  onChange={(e) => setSimMinutes(e.target.value)}
+                />
+                <div className="mt-2 text-4xl font-black text-amber-400">{simMinutes} <span className="text-lg text-slate-400 font-bold uppercase tracking-widest">MIN</span></div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-800">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Monto a Cobrar Estimaudo</div>
+                <div className="text-5xl font-black tracking-tighter"><Money value={simulation?.total || 0} /></div>
+                <div className="mt-2 text-sm text-slate-400 font-medium italic">Regla: {simulation?.detalle}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl border border-slate-100 bg-slate-50 text-slate-500 text-sm italic">
+            <AlertCircle className="h-5 w-5 mb-3 text-slate-400" />
+            Esta configuración es global y afecta a todos los turnos abiertos. Se recomienda realizar cambios de tarifa fuera de horario pico para evitar discrepancias de pre-vvisualización en cajas activas.
+          </div>
+        </div>
+      </div>
+
+      {alert && <StatusAlert alert={alert} />}
     </div>
   );
 }
@@ -522,7 +722,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
 
   const handleCreateInvoice = async () => {
     if (!paymentResult) return;
-    
+
     const payload = {
       id_cobro: paymentResult.id_cobro,
       tipo_documento: docType,
@@ -532,7 +732,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
     };
 
     setAlert(getLoadingMessage("cobrando")); // Reutilizamos mensaje de cobro (facturando)
-    
+
     try {
       const res = await apiService.facturar(payload);
       onInvoiceSuccess(res);
@@ -567,20 +767,20 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
     <div className="grid gap-6 xl:grid-cols-3">
       <div className="xl:col-span-2 rounded-3xl border bg-white p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-6">
-           <div className="bg-slate-900 p-3 rounded-2xl text-white">
-              <User className="h-6 w-6" />
-           </div>
-           <div>
-              <h2 className="text-2xl font-bold text-slate-900">Módulo de Facturación</h2>
-              <p className="text-sm text-slate-500">Gestión de datos fiscales y emisión de comprobantes oficiales.</p>
-           </div>
+          <div className="bg-slate-900 p-3 rounded-2xl text-white">
+            <User className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Módulo de Facturación</h2>
+            <p className="text-sm text-slate-500">Gestión de datos fiscales y emisión de comprobantes oficiales.</p>
+          </div>
         </div>
 
         <div className="space-y-8">
           <div className="grid gap-4 md:grid-cols-[150px_1fr_auto]">
             <div>
               <label className="mb-2 block text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo Doc.</label>
-              <select 
+              <select
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-semibold focus:ring-2 focus:ring-slate-900/5 transition-all"
                 value={docType}
                 onChange={(e) => setDocType(e.target.value)}
@@ -602,7 +802,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
             </div>
 
             <div className="flex items-end">
-              <button 
+              <button
                 className="h-12 rounded-xl border-2 border-slate-900 px-6 font-bold text-slate-900 hover:bg-slate-900 hover:text-white transition-all active:scale-95"
                 onClick={handleSearchClient}
                 disabled={isSearching}
@@ -614,29 +814,29 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
 
           <AnimatePresence>
             {isNewClient ? (
-              <motion.div initial={{opacity:0, y: 10}} animate={{opacity:1, y: 0}} className="space-y-4 p-6 rounded-2xl bg-amber-50 border border-amber-100 italic">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 p-6 rounded-2xl bg-amber-50 border border-amber-100 italic">
                 <div className="flex items-center gap-2 text-amber-900 font-bold not-italic mb-2">
-                   <AlertCircle className="h-5 w-5" /> Alta Rápida de Cliente
+                  <AlertCircle className="h-5 w-5" /> Alta Rápida de Cliente
                 </div>
                 <div className="grid gap-4">
-                  <input 
-                     placeholder="Nombre Completo / Razón Social"
-                     className="h-12 w-full rounded-xl border border-amber-200 px-4 not-italic font-medium bg-white"
-                     value={formData.nombre}
-                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                  <input
+                    placeholder="Nombre Completo / Razón Social"
+                    className="h-12 w-full rounded-xl border border-amber-200 px-4 not-italic font-medium bg-white"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   />
                 </div>
               </motion.div>
             ) : clientData ? (
-              <motion.div initial={{opacity:0, y: 10}} animate={{opacity:1, y: 0}} className="p-6 rounded-2xl bg-blue-50 border border-blue-100">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 rounded-2xl bg-blue-50 border border-blue-100">
                 <div className="flex items-center gap-3">
-                   <div className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold">
-                     {clientData.nombre_razon_social.charAt(0)}
-                   </div>
-                   <div>
-                      <div className="font-bold text-blue-900 text-lg">{clientData.nombre_razon_social}</div>
-                      <div className="text-blue-600 text-sm font-medium">{clientData.tipo_documento}: {clientData.numero_documento}</div>
-                   </div>
+                  <div className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold">
+                    {clientData.nombre_razon_social.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-bold text-blue-900 text-lg">{clientData.nombre_razon_social}</div>
+                    <div className="text-blue-600 text-sm font-medium">{clientData.tipo_documento}: {clientData.numero_documento}</div>
+                  </div>
                 </div>
               </motion.div>
             ) : null}
@@ -645,7 +845,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
           {(alert || facturaResult) && <StatusAlert alert={alert} />}
 
           <div className="pt-4 flex gap-4">
-            <button 
+            <button
               className="flex-1 rounded-2xl bg-slate-900 py-4 text-white font-bold text-lg hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95 shadow-xl shadow-slate-200"
               onClick={handleCreateInvoice}
               disabled={(!clientData && !isNewClient) || (isNewClient && !formData.nombre) || alert?.type === "loading" || !!facturaResult}
@@ -658,39 +858,39 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
 
       <div className="rounded-3xl border bg-white p-6 shadow-sm flex flex-col justify-between">
         <div className="space-y-6">
-           <h3 className="text-lg font-bold text-slate-900">Concepto de Facturación</h3>
-           <div className="space-y-4 text-sm">
-             <div className="flex justify-between items-center text-slate-500 font-medium pb-2 border-b border-slate-50">
-               <span>ID Cobro Asociado</span>
-               <span className="text-slate-900">#{paymentResult.id_cobro}</span>
-             </div>
-             <div className="flex justify-between items-center text-slate-500 font-medium pb-2 border-b border-slate-50">
-               <span>Base Imponible</span>
-               <Money value={fiscalDetail.base} />
-             </div>
-             <div className="flex justify-between items-center text-slate-500 font-medium">
-               <span>IVA (10%)</span>
-               <Money value={fiscalDetail.iva} />
-             </div>
-             <div className="mt-6 pt-6 border-t-2 border-slate-900">
-               <SummaryRow label="TOTAL FACTURA" value={<Money value={fiscalDetail.total} />} strong />
-             </div>
-           </div>
+          <h3 className="text-lg font-bold text-slate-900">Concepto de Facturación</h3>
+          <div className="space-y-4 text-sm">
+            <div className="flex justify-between items-center text-slate-500 font-medium pb-2 border-b border-slate-50">
+              <span>ID Cobro Asociado</span>
+              <span className="text-slate-900">#{paymentResult.id_cobro}</span>
+            </div>
+            <div className="flex justify-between items-center text-slate-500 font-medium pb-2 border-b border-slate-50">
+              <span>Base Imponible</span>
+              <Money value={fiscalDetail.base} />
+            </div>
+            <div className="flex justify-between items-center text-slate-500 font-medium">
+              <span>IVA (10%)</span>
+              <Money value={fiscalDetail.iva} />
+            </div>
+            <div className="mt-6 pt-6 border-t-2 border-slate-900">
+              <SummaryRow label="TOTAL FACTURA" value={<Money value={fiscalDetail.total} />} strong />
+            </div>
+          </div>
 
-           {facturaResult && (
-              <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest">Nro Factura</span>
-                    <span className="font-bold text-slate-900">{facturaResult.numero_factura}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest">Fecha EM</span>
-                    <span className="font-bold text-slate-900">{new Date(facturaResult.fecha_emision || new Date()).toLocaleDateString()}</span>
-                  </div>
-              </motion.div>
-            )}
+          {facturaResult && (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400 font-bold uppercase tracking-widest">Nro Factura</span>
+                <span className="font-bold text-slate-900">{facturaResult.numero_factura}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400 font-bold uppercase tracking-widest">Fecha EM</span>
+                <span className="font-bold text-slate-900">{new Date(facturaResult.fecha_emision || new Date()).toLocaleDateString()}</span>
+              </div>
+            </motion.div>
+          )}
         </div>
-        
+
         <div className="mt-8 rounded-2xl bg-slate-50 p-5 text-slate-500 text-xs text-center border border-slate-100">
           <p>La facturación fiscal descarga el crédito impositivo al cliente. Este proceso es final y oficial.</p>
         </div>
@@ -760,11 +960,11 @@ export default function App() {
   useEffect(() => {
     setAlert(null);
     if (currentScreen === "caja") {
-        setTicket(null);
-        setSearchCode("");
-        setAlert(null);
-        setPaymentResult(null);
-        setFacturaResult(null);
+      setTicket(null);
+      setSearchCode("");
+      setAlert(null);
+      setPaymentResult(null);
+      setFacturaResult(null);
     }
   }, [currentScreen]);
 
@@ -792,13 +992,13 @@ export default function App() {
       const result = await apiService.processPayment(ticket.codigo_ticket, medioPago);
       setPaymentResult(result);
       setFacturaResult(null); // Limpiar factura previa si existe
-      
+
       setAlert({
         title: "Cobro registrado correctamente",
         message: "La operación fue registrada en caja y el ticket quedó en estado COBRADO.",
         type: "success"
       });
-      
+
       setCurrentScreen("resultado");
       return true;
     } catch (err) {
@@ -817,25 +1017,27 @@ export default function App() {
     switch (currentScreen) {
       case "resultado":
         return (
-           <ResultadoScreen 
-              paymentResult={paymentResult} 
-              onContinueToInvoicing={() => setCurrentScreen("cliente")}
-           />
+          <ResultadoScreen
+            paymentResult={paymentResult}
+            onContinueToInvoicing={() => setCurrentScreen("cliente")}
+          />
         );
       case "cliente":
         return (
-           <ClienteScreen 
-              paymentResult={paymentResult} 
-              facturaResult={facturaResult}
-              onInvoiceSuccess={handleInvoiceSuccess}
-              alert={alert} 
-              setAlert={setAlert} 
-           />
+          <ClienteScreen
+            paymentResult={paymentResult}
+            facturaResult={facturaResult}
+            onInvoiceSuccess={handleInvoiceSuccess}
+            alert={alert}
+            setAlert={setAlert}
+          />
         );
+      case "tarifa":
+        return <TarifaScreen alert={alert} setAlert={setAlert} />;
       case "caja":
       default:
         return (
-          <CajaPrincipal 
+          <CajaPrincipal
             ticket={ticket}
             searchCode={searchCode}
             setSearchCode={setSearchCode}
@@ -850,8 +1052,8 @@ export default function App() {
   }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert]);
 
   return (
-    <AppShell 
-      currentScreen={currentScreen} 
+    <AppShell
+      currentScreen={currentScreen}
       setCurrentScreen={setCurrentScreen}
       hasPaymentContext={!!paymentResult}
     >

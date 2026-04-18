@@ -26,11 +26,19 @@ class BaseRepository(Generic[ModelType]):
         db.refresh(db_obj)
         return db_obj
 
-    def update(self, db: Session, db_obj: ModelType, obj_in: Dict[str, Any]) -> ModelType:
-        """Actualiza campos explícitamente enviados en un diccionario"""
+    def update(self, db: Session, db_obj: ModelType, obj_in: Any) -> ModelType:
+        """Actualiza campos explícitamente enviados (soporta dict o Pydantic)"""
+        if not isinstance(obj_in, dict):
+            # Soporte para Pydantic v1 (.dict) y v2 (.model_dump)
+            if hasattr(obj_in, "model_dump"):
+                obj_in = obj_in.model_dump(exclude_unset=True)
+            else:
+                obj_in = obj_in.dict(exclude_unset=True)
+
         for field, value in obj_in.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
+        
         db.add(db_obj)
         db.flush()
         db.refresh(db_obj)
