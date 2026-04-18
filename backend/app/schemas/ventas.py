@@ -7,6 +7,7 @@ from app.schemas.base import BaseSchema
 class CobroCreate(BaseSchema):
     codigo_ticket: str = Field(..., min_length=1)
     medio_pago: Literal["EFECTIVO", "TRANSFERENCIA", "TARJETA"]
+    minutos_manuales: Optional[int] = Field(None, ge=0)
     observacion: Optional[str] = None
 
 class CobroResponse(BaseSchema):

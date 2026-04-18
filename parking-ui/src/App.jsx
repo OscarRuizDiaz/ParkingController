@@ -234,7 +234,11 @@ function CajaPrincipal({
   medioPago,
   setMedioPago,
   onProcessPayment,
-  alert
+  alert,
+  modoCalculo,
+  setModoCalculo,
+  manualMinutes,
+  setManualMinutes
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -251,8 +255,8 @@ function CajaPrincipal({
               Ingreso del ticket y cálculo de liquidación.
             </p>
 
-            <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto]">
-              <div>
+            <div className="mt-6 flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
                 <label className="mb-2 block text-sm font-medium text-slate-700">
                   Documento / Código Ticket
                 </label>
@@ -265,22 +269,47 @@ function CajaPrincipal({
                     placeholder="TK-000000"
                     value={searchCode}
                     onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
-                    onKeyUp={(e) => e.key === "Enter" && onSearch(searchCode)}
+                    onKeyUp={(e) => e.key === "Enter" && onSearch()}
                   />
                 </div>
               </div>
-              <div className="flex items-end">
-                <button
-                  className="h-12 rounded-xl bg-slate-900 px-8 text-white hover:bg-slate-800 disabled:opacity-50 shadow-sm transition-all active:scale-95"
-                  onClick={() => onSearch(searchCode)}
-                  disabled={alert?.type === "loading" || !searchCode}
+
+              <div className="w-full md:w-44">
+                <label className="mb-2 block text-sm font-medium text-slate-700">Modo Cálculo</label>
+                <select 
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900"
+                  value={modoCalculo}
+                  onChange={(e) => setModoCalculo(e.target.value)}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    {alert?.type === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    Buscar
-                  </span>
-                </button>
+                  <option value="AUTOMATICO">🕒 AUTOMÁTICO</option>
+                  <option value="MANUAL">⌨️ MANUAL</option>
+                </select>
               </div>
+
+              {modoCalculo === "MANUAL" && (
+                <div className="w-full md:w-32">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Minutos</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="h-12 w-full rounded-xl border border-slate-300 px-4 text-base font-bold outline-none focus:border-slate-900"
+                    placeholder="Min."
+                    value={manualMinutes}
+                    onChange={(e) => setManualMinutes(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              )}
+
+              <button
+                className="h-12 rounded-xl bg-slate-900 px-8 text-white hover:bg-slate-800 disabled:opacity-50 shadow-sm transition-all active:scale-95 mb-0.5"
+                onClick={() => onSearch()}
+                disabled={alert?.type === "loading" || !searchCode || (modoCalculo === "MANUAL" && !manualMinutes)}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {alert?.type === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Consultar
+                </span>
+              </button>
             </div>
 
             <div className="mt-6">
@@ -293,13 +322,19 @@ function CajaPrincipal({
                   <span>Valores congelados al momento del cobro. Cálculo histórico.</span>
                 </motion.div>
               )}
+              {ticket?.detalle_calculo?.origen_calculo === "MANUAL" && !alert && (
+                 <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-100 p-4 text-amber-800 text-sm font-medium">
+                  <Zap className="h-5 w-5 shrink-0" />
+                  <span>Cálculo forzado de forma manual - Minutos ingresados por el operador.</span>
+                </motion.div>
+              )}
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <InfoBox icon={CarFront} label="Proveedor" value={ticket?.proveedor_origen || "---"} />
               <InfoBox icon={Clock3} label="Ingreso" value={ticket?.fecha_hora_ingreso ? new Date(ticket.fecha_hora_ingreso).toLocaleString() : "---"} />
               <InfoBox icon={Receipt} label="Estado" value={ticket?.estado || "---"} badge={!!ticket} />
-              <InfoBox icon={CircleDollarSign} label="Tarifa Actual" value={ticket?.detalle_calculo?.tarifa_aplicada ? `Gs. ${formatter.format(ticket.detalle_calculo.tarifa_aplicada)}` : "---"} />
+              <InfoBox icon={CircleDollarSign} label="Tarifa Actual" value={ticket?.detalle_calculo?.modo_calculo || "---"} />
             </div>
 
             <hr className="my-6 border-slate-100" />
@@ -668,7 +703,7 @@ function TarifaScreen({ alert, setAlert }) {
                   type="range" min="1" max="300"
                   className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
                   value={simMinutes}
-                  onChange={(e) => setSimMinutes(e.target.value)}
+                  onChange={(e) => setSimMinutes(Number(e.target.value))}
                 />
                 <div className="mt-2 text-4xl font-black text-amber-400">{simMinutes} <span className="text-lg text-slate-400 font-bold uppercase tracking-widest">MIN</span></div>
               </div>
@@ -842,7 +877,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
             ) : null}
           </AnimatePresence>
 
-          {(alert || facturaResult) && <StatusAlert alert={alert} />}
+          {alert && <StatusAlert alert={alert} />}
 
           <div className="pt-4 flex gap-4">
             <button
@@ -955,6 +990,8 @@ export default function App() {
   const [medioPago, setMedioPago] = useState("EFECTIVO");
   const [paymentResult, setPaymentResult] = useState(null);
   const [facturaResult, setFacturaResult] = useState(null);
+  const [modoCalculo, setModoCalculo] = useState("AUTOMATICO");
+  const [manualMinutes, setManualMinutes] = useState(0);
 
   // Limpieza de estado al navegar
   useEffect(() => {
@@ -965,18 +1002,42 @@ export default function App() {
       setAlert(null);
       setPaymentResult(null);
       setFacturaResult(null);
+      setManualMinutes(0);
+      setModoCalculo("AUTOMATICO");
     }
   }, [currentScreen]);
 
-  const handleSearch = async (codigo) => {
+  const handleSearch = async () => {
+    const codigo = searchCode;
     if (!codigo) return;
+    
+    if (modoCalculo === "MANUAL" && (!manualMinutes || manualMinutes <= 0)) {
+       setAlert({
+         title: "Minutos Requeridos",
+         message: "En modo manual debe ingresar la cantidad de minutos de estancia.",
+         type: "warning"
+       });
+       return;
+    }
+
     setAlert(getLoadingMessage("buscando"));
     setTicket(null);
 
     try {
-      const ticketInfo = await apiService.getTicket(codigo);
-      const simulacion = await apiService.simulateTicket(codigo);
-      setTicket({ ...ticketInfo, ...simulacion });
+      if (modoCalculo === "MANUAL") {
+        const simulacion = await apiService.simularManual(codigo, manualMinutes);
+        setTicket({ 
+          codigo_ticket: codigo,
+          proveedor_origen: "INGRESO_MANUAL",
+          fecha_hora_ingreso: new Date().toISOString(),
+          estado: "PENDIENTE",
+          ...simulacion 
+        });
+      } else {
+        const ticketInfo = await apiService.getTicket(codigo);
+        const simulacion = await apiService.simulateTicket(codigo);
+        setTicket({ ...ticketInfo, ...simulacion });
+      }
       setAlert(null);
     } catch (err) {
       setAlert(mapBackendError(err.message || err.detail || err));
@@ -989,7 +1050,11 @@ export default function App() {
     setAlert(getLoadingMessage("cobrando"));
 
     try {
-      const result = await apiService.processPayment(ticket.codigo_ticket, medioPago);
+      const result = await apiService.processPayment(
+        ticket.codigo_ticket, 
+        medioPago,
+        modoCalculo === "MANUAL" ? manualMinutes : null
+      );
       setPaymentResult(result);
       setFacturaResult(null); // Limpiar factura previa si existe
 
@@ -1046,10 +1111,14 @@ export default function App() {
             setMedioPago={setMedioPago}
             onProcessPayment={handleProcessPayment}
             alert={alert}
+            modoCalculo={modoCalculo}
+            setModoCalculo={setModoCalculo}
+            manualMinutes={manualMinutes}
+            setManualMinutes={setManualMinutes}
           />
         );
     }
-  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert]);
+  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert, modoCalculo, manualMinutes]);
 
   return (
     <AppShell

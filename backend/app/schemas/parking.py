@@ -21,6 +21,10 @@ class TicketCreate(BaseSchema):
     codigo_ticket: str = Field(..., min_length=1, description="Código único leído por escáner")
     fecha_hora_ingreso: datetime
     proveedor_origen: Optional[str] = None
+
+class SimulacionManualRequest(BaseSchema):
+    codigo_ticket: str = Field(..., min_length=1)
+    minutos_manuales: int = Field(..., ge=0, description="Minutos totales de estancia ingresados manualmente")
 # === TARIFA SCHEMAS ===
 
 class TarifaBaseResponse(BaseSchema):
@@ -70,3 +74,4 @@ class LiquidacionConfirmadaResponse(BaseSchema):
     monto_bruto: Decimal
     estado: str
     creado_en: datetime
+

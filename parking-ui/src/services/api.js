@@ -34,18 +34,45 @@ export const apiService = {
   /**
    * Registra el cobro real de un ticket.
    */
-  async processPayment(codigo_ticket, medio_pago) {
+  async processPayment(codigo_ticket, medio_pago, minutos_manuales = null) {
     const response = await fetch(`${BASE_URL}/ventas/cobrar`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ codigo_ticket, medio_pago }),
+      body: JSON.stringify({ 
+        codigo_ticket, 
+        medio_pago,
+        minutos_manuales: minutos_manuales !== null ? parseInt(minutos_manuales) : null
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
       throw errorData;
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Simulación manual basada en minutos ingresados por el usuario.
+   */
+  async simularManual(codigo_ticket, minutos_manuales) {
+    const response = await fetch(`${BASE_URL}/tickets/simular-manual`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        codigo_ticket, 
+        minutos_manuales: parseInt(minutos_manuales)
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Error en simulación manual");
     }
 
     return await response.json();

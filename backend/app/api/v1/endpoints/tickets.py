@@ -6,6 +6,7 @@ from app.schemas.parking import (
     TicketCreate,
     TicketBusquedaResponse,
     LiquidacionCalculadaResponse,
+    SimulacionManualRequest,
 )
 from app.services.parking_service import ParkingService
 
@@ -45,5 +46,20 @@ def simular_liquidacion_ticket(
 ) -> LiquidacionCalculadaResponse:
     try:
         return service.simular_liquidacion(codigo_ticket)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/simular-manual", response_model=LiquidacionCalculadaResponse)
+def simular_manual(
+    req: SimulacionManualRequest,
+    service: ParkingService = Depends(get_parking_service),
+) -> LiquidacionCalculadaResponse:
+    """
+    Simula el cobro de un ticket usando minutos ingresados manualmente.
+    Permite simulación incluso para códigos inexistentes.
+    """
+    try:
+        return service.simular_liquidacion_manual(req.codigo_ticket, req.minutos_manuales)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

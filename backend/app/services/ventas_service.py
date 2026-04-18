@@ -31,19 +31,32 @@ class VentasService:
         if not turno:
             raise ValueError("No hay un turno de caja abierto para este usuario.")
 
-        # 2. Validar Ticket
+        # 2. Validar-Obtener Ticket (Ahora soportamos creación automática en manual)
         ticket = ticket_repo.get_by_codigo(self.db, cobro_in.codigo_ticket)
-        if not ticket:
-            raise ValueError(f"Ticket {cobro_in.codigo_ticket} no encontrado.")
+        
+        # Si no existe y NO es manual, error
+        if not ticket and cobro_in.minutos_manuales is None:
+            raise ValueError(f"Ticket {cobro_in.codigo_ticket} no encontrado y no se proporcionaron minutos manuales.")
 
-        if ticket.estado == 'COBRADO' or ticket.estado == 'FACTURADO':
+        if ticket and (ticket.estado == 'COBRADO' or ticket.estado == 'FACTURADO'):
             raise ValueError("El ticket ya ha sido cobrado previamente.")
 
         # 3. Asegurar Liquidación y Validar Estado
-        # Iniciamos bloque transaccional explícito
         try:
-            # Si está en PENDIENTE, generamos liquidación dentro de nuestra transacción (commit=False)
-            if ticket.estado == 'PENDIENTE':
+            # FLUJO MANUAL: Si vienen minutos_manuales, usamos la lógica manual persistida
+            if cobro_in.minutos_manuales is not None:
+                liquidacion = self.parking_service.generar_liquidacion_manual(
+                    cobro_in.codigo_ticket,
+                    cobro_in.minutos_manuales,
+                    user.id_usuario,
+                    commit=False
+                )
+                # Refrescamos el ticket porque pudo haber sido creado en el paso anterior
+                if not ticket:
+                    ticket = ticket_repo.get_by_codigo(self.db, cobro_in.codigo_ticket)
+            
+            # FLUJO AUTOMÁTICO: Lógica actual basada en tiempo
+            elif ticket.estado == 'PENDIENTE':
                 liquidacion = self.parking_service.generar_liquidacion(
                     ticket.codigo_ticket, 
                     user.id_usuario, 
@@ -53,7 +66,6 @@ class VentasService:
                 # Si ya está LIQUIDADO, buscamos la liquidación existente
                 liquidacion = liquidacion_repo.get_ultima_by_ticket(self.db, ticket.id_ticket)
                 if not liquidacion:
-                    # Caso de recuperación de estado
                     liquidacion = self.parking_service.generar_liquidacion(
                         ticket.codigo_ticket, 
                         user.id_usuario, 
