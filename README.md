@@ -1,66 +1,90 @@
-# ParkingController
+# ParkingController 🚗💨
 
-Sistema web de caja y facturación para salida de estacionamiento.
+![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Frontend: React](https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Database: PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
-## Descripción
+**ParkingController** es una solución integral para el control de accesos, gestión de caja y facturación de estacionamientos comerciales. Diseñado con un motor tarifario altamente flexible y precisión financiera garantizada.
 
-ParkingController es un sistema orientado al control de cobro y facturación de estacionamiento al momento de la salida del cliente.
+---
 
-El sistema no registra el ingreso del vehículo ni genera el ticket de entrada en esta primera etapa, ya que esa función depende de un tercero. Sin embargo, quedará preparado para soportar esa funcionalidad en el futuro si fuera necesario.
+## 🏗️ Arquitectura y Stack
 
-## Objetivo del MVP
+El sistema sigue una arquitectura desacoplada y escalable:
 
-Permitir que un cajero:
+- **Backend**: Python 3.10+ con **FastAPI** (API REST de alto rendimiento).
+- **ORM**: SQLAlchemy 2.0 con patrones de Repositorio.
+- **Frontend**: **React** con Vite, Styled Components (Vanilla CSS) y animaciones fluidas (Framer Motion).
+- **Base de Datos**: **PostgreSQL** con tipado fuerte para transacciones financieras.
 
-- ingrese o consulte un ticket emitido por un tercero,
-- calcule el monto a cobrar según una regla tarifaria,
-- busque o registre al cliente por CI o RUC,
-- realice el cobro en caja,
-- emita una factura,
-- aplique IVA según corresponda,
-- y deje trazabilidad de la operación.
+---
 
-## Alcance inicial
+## 🚀 Funcionalidades Clave
 
-Incluye:
+- **📍 Gestión de Tickets**: Ciclo de vida completo desde el ingreso hasta la salida.
+- **🧮 Motor Tarifario Inteligente**: Soporte para múltiples modos de cálculo configurables en vivo.
+- **❄️ Congelamiento Histórico**: Las liquidaciones se congelan al momento del cobro para garantizar integridad.
+- **🧾 Facturación Integrada**: Módulo de alta rápida de clientes y emisión de comprobantes.
+- **📊 Administración**: Interfaz moderna para gestionar reglas de negocio y tarifas.
 
-- cálculo del monto por tiempo de estacionamiento,
-- cobro en caja,
-- emisión de factura,
-- búsqueda de cliente por CI o RUC,
-- parametrización básica de IVA,
-- preparación para futura integración con SIFEN.
+---
 
-No incluye en esta etapa:
+## 📁 Estructura del Proyecto
 
-- registro de entrada de vehículos,
-- generación de ticket de ingreso,
-- integración activa con SIFEN,
-- integración activa con sistema externo del emisor del ticket.
+```text
+ParkingController/
+├── backend/            # API FastAPI, Modelos y Lógica de Negocio
+├── parking-ui/         # Interfaz de Usuario en React
+├── database/           # Scripts SQL e inicialización de esquemas
+├── docs/               # Documentación técnica completa (Arquitectura, API, etc.)
+└── README.md           # Guía rápida de inicio
+```
 
-## Regla tarifaria inicial
+---
 
-Ejemplo base:
+## 🛠️ Instalación Rápida
 
-- 1 a 60 minutos = 40.000
-- 61 a 120 minutos = 80.000
-- 40 minutos = 40.000
+Para instrucciones detalladas de despliegue, variables de entorno y configuración de base de datos, consulte la **[Guía de Despliegue](docs/deploy.md)**.
 
-La lógica inicial será por bloques de tiempo redondeados hacia arriba.
+### Backend
+```bash
+cd backend
+python -m venv venv
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-## Stack previsto
+### Frontend
+```bash
+cd parking-ui
+npm install
+npm run dev
+```
 
-- Backend: Python + FastAPI
-- Frontend: React
-- Base de datos: PostgreSQL
+---
 
-## Documentación
+## 📚 Documentación Técnica
 
-- Requisitos funcionales: `docs/funcional/requisitos-mvp.md`
-- Arquitectura inicial: `docs/arquitectura/arquitectura-v1.md`
-- Backlog base: `docs/gestion/backlog-inicial.md`
-- Seguridad inicial: `docs/seguridad/lineamientos-iniciales.md`
+Contamos con una suite completa de documentos para desarrolladores y administradores:
 
-## Estado del proyecto
+1.  **[Arquitectura Lógica](docs/arquitectura.md)**: Capas y flujo de datos.
+2.  **[Motor Tarifario](docs/tarifador.md)**: El corazón del cálculo monetario.
+3.  **[API Reference](docs/api.md)**: Catálogo de endpoints y ejemplos JSON.
+4.  **[Reglas de Negocio](docs/reglas_negocio.md)**: Políticas de congelamiento y validaciones.
+5.  **[Base de Datos](docs/database.md)**: Diagrama de tablas y estados del ticket.
+6.  **[Buenas Prácticas](docs/buenas_practicas.md)**: Estándares de desarrollo aplicados.
+7.  **[Troubleshooting](docs/troubleshooting.md)**: Solución a problemas comunes resueltos.
+8.  **[Roadmap](docs/roadmap.md)**: Futuras funcionalidades (SIFEN, LPR).
 
-Fase de definición y preparación de MVP.
+---
+
+## 👨‍💻 Contribuir
+
+1. Clonar el repositorio.
+2. Crear una rama para tu funcionalidad (`git checkout -b feature/nueva-fun`).
+3. Realizar commits bajo estándares convencionales.
+4. Enviar un Pull Request.
+
+---
+
+Desarrollado con ❤️ para el control eficiente de espacios.
