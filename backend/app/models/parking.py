@@ -31,7 +31,7 @@ class Tarifa(Base):
 
     id_tarifa = Column(BigInteger, primary_key=True, autoincrement=True)
     nombre = Column(String(100), nullable=False)
-    modo_calculo = Column(String(30), nullable=False)
+    modo_calculo = Column(String(60), nullable=False)
     valor_base = Column(Numeric(14, 2), nullable=False, default=0)
     fraccion_minutos = Column(Integer, nullable=False, default=60)
     redondea_hacia_arriba = Column(Boolean, nullable=False, default=True)
