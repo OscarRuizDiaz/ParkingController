@@ -1,11 +1,14 @@
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from app.models.parking import Ticket, Liquidacion
 from app.models.seguridad import Usuario
 from app.models.ventas import Cobro, TurnoCaja
-from app.repositories.ventas_repo import cobro_repo, turno_repo
+from app.repositories.ventas_repo import cobro_repo, turno_repo, caja_repo
 from app.repositories.parking_repo import ticket_repo, liquidacion_repo
 from app.services.parking_service import ParkingService
-from app.schemas.ventas import CobroCreate, CobroResponse
+from app.schemas.ventas import CobroCreate, CobroResponse, TurnoCajaResumenResponse
 
 class VentasService:
     def __init__(self, db: Session):
@@ -120,3 +123,95 @@ class VentasService:
             if isinstance(e, ValueError):
                 raise e
             raise ValueError(f"Error al procesar el cobro: {str(e)}")
+
+    def abrir_turno(self, id_caja: int, monto_inicial: Decimal) -> TurnoCaja:
+        """Abre un nuevo turno de caja para el usuario demo."""
+        user = self._get_demo_user()
+        
+        # 1. Validar si el USUARIO ya tiene un turno abierto
+        existente_usr = turno_repo.get_turno_abierto_por_usuario(self.db, user.id_usuario)
+        if existente_usr:
+            raise ValueError(f"El usuario {user.username} ya tiene un turno abierto (ID {existente_usr.id_turno}).")
+        
+        # 2. Validar si la CAJA ya tiene un turno abierto (Evitar duplicidad física)
+        existente_caja = turno_repo.get_turno_abierto_por_caja(self.db, id_caja)
+        if existente_caja:
+            raise ValueError(f"La caja #{id_caja} ya tiene un turno abierto activo por otro usuario.")
+
+        turno_data = {
+            "id_caja": id_caja,
+            "id_usuario": user.id_usuario,
+            "monto_inicial": monto_inicial,
+            "estado": "ABIERTO",
+            "fecha_hora_apertura": datetime.now()
+        }
+        
+        nuevo_turno = turno_repo.create(self.db, turno_data)
+        self.db.commit()
+        return nuevo_turno
+
+    def get_turno_actual(self) -> Optional[TurnoCaja]:
+        """Retorna el turno abierto actual del usuario demo."""
+        user = self._get_demo_user()
+        return turno_repo.get_turno_abierto_por_usuario(self.db, user.id_usuario)
+
+    def cerrar_turno(self, monto_final_declarado: Decimal) -> TurnoCaja:
+        """Cierra el turno actual y calcula la diferencia operativa."""
+        turno = self.get_turno_actual()
+        if not turno:
+            raise ValueError("No hay un turno abierto para cerrar.")
+        
+        resumen = self.get_resumen_turno(turno.id_turno)
+        
+        # Regla: diferencia = monto_final_declarado - (monto_inicial + total_efectivo)
+        diferencia = monto_final_declarado - (turno.monto_inicial + resumen.total_efectivo)
+        
+        update_data = {
+            "fecha_hora_cierre": datetime.now(),
+            "monto_final": monto_final_declarado,
+            "diferencia": diferencia,
+            "estado": "CERRADO"
+        }
+        
+        turno_cerrado = turno_repo.update(self.db, turno, update_data)
+        self.db.commit()
+        return turno_cerrado
+
+    def get_resumen_turno(self, id_turno: int) -> TurnoCajaResumenResponse:
+        """Genera un resumen completo del estado de un turno."""
+        turno = turno_repo.get(self.db, id_turno)
+        if not turno:
+            raise ValueError("Turno no encontrado.")
+            
+        caja = caja_repo.get(self.db, turno.id_caja)
+        user = self._get_demo_user()
+        
+        total_efectivo = turno_repo.get_total_por_medio_pago(self.db, id_turno, "EFECTIVO")
+        total_transferencia = turno_repo.get_total_por_medio_pago(self.db, id_turno, "TRANSFERENCIA")
+        total_tarjeta = turno_repo.get_total_por_medio_pago(self.db, id_turno, "TARJETA")
+        cantidad_cobros = turno_repo.get_cantidad_cobros(self.db, id_turno)
+        
+        total_cobrado = total_efectivo + total_transferencia + total_tarjeta
+        
+        # Calcular diferencia si está cerrado
+        diferencia = None
+        if turno.estado == "CERRADO":
+            diferencia = turno.monto_final - (turno.monto_inicial + total_efectivo)
+            
+        return TurnoCajaResumenResponse(
+            id_turno=turno.id_turno,
+            id_caja=turno.id_caja,
+            nombre_caja=caja.nombre if caja else "Caja desconocida",
+            estado=turno.estado,
+            fecha_hora_apertura=turno.fecha_hora_apertura,
+            fecha_hora_cierre=turno.fecha_hora_cierre,
+            monto_inicial=turno.monto_inicial,
+            monto_final=turno.monto_final,
+            total_cobrado=total_cobrado,
+            total_efectivo=total_efectivo,
+            total_transferencia=total_transferencia,
+            total_tarjeta=total_tarjeta,
+            cantidad_cobros=cantidad_cobros,
+            diferencia=diferencia,
+            usuario_nombre=user.nombre_completo
+        )

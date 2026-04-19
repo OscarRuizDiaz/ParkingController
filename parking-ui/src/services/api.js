@@ -123,5 +123,51 @@ export const apiService = {
       throw new Error(errorData.detail || "Error actualizando tarifa");
     }
     return await response.json();
+  },
+
+  // === CAJA / TURNOS ===
+  async caja_abrir(id_caja, monto_inicial) {
+    const response = await fetch(`${BASE_URL}/ventas/caja/abrir`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_caja, monto_inicial: parseFloat(monto_inicial) })
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Error al abrir caja");
+    }
+    return await response.json();
+  },
+
+  async caja_getActual() {
+    const response = await fetch(`${BASE_URL}/ventas/caja/actual`);
+    if (!response.ok) {
+        // Si el servidor responde con error, lanzamos para que el catch lo capture
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Error al recuperar turno actual");
+    }
+    return await response.json();
+  },
+
+  async caja_getResumen() {
+    const response = await fetch(`${BASE_URL}/ventas/caja/resumen`);
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error obteniendo resumen de caja");
+    }
+    return await response.json();
+  },
+
+  async caja_cerrar(monto_final_declarado) {
+    const response = await fetch(`${BASE_URL}/ventas/caja/cerrar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ monto_final_declarado: parseFloat(monto_final_declarado) })
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Error al cerrar caja");
+    }
+    return await response.json();
   }
 };

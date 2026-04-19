@@ -2,6 +2,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.repositories.base import BaseRepository
 from app.models.ventas import Cobro, Caja, TurnoCaja
+from decimal import Decimal
+from sqlalchemy import func
 from app.models.seguridad import Usuario
 
 class RepositorioCobro(BaseRepository[Cobro]):
@@ -19,6 +21,30 @@ class RepositorioTurno(BaseRepository[TurnoCaja]):
             .order_by(TurnoCaja.fecha_hora_apertura.desc())
             .first()
         )
+
+    def get_turno_abierto_por_caja(self, db: Session, id_caja: int) -> Optional[TurnoCaja]:
+        """Busca si una caja específica ya tiene un turno abierto activo."""
+        return (
+            db.query(TurnoCaja)
+            .filter(TurnoCaja.id_caja == id_caja)
+            .filter(TurnoCaja.estado == 'ABIERTO')
+            .first()
+        )
+
+    def get_total_por_medio_pago(self, db: Session, id_turno: int, medio_pago: str) -> Decimal:
+        """Suma el total cobrado por un medio de pago específico en un turno."""
+        resultado = (
+            db.query(func.sum(Cobro.monto))
+            .filter(Cobro.id_turno == id_turno)
+            .filter(Cobro.medio_pago == medio_pago)
+            .filter(Cobro.estado == 'COBRADO')
+            .scalar()
+        )
+        return Decimal(str(resultado or 0))
+
+    def get_cantidad_cobros(self, db: Session, id_turno: int) -> int:
+        """Retorna la cantidad de cobros realizados en un turno."""
+        return db.query(func.count(Cobro.id_cobro)).filter(Cobro.id_turno == id_turno).filter(Cobro.estado == 'COBRADO').scalar()
 
 class RepositorioCaja(BaseRepository[Caja]):
     pass

@@ -25,6 +25,7 @@ class TurnoCaja(Base):
     fecha_hora_cierre = Column(DateTime)
     monto_inicial = Column(Numeric(14, 2), nullable=False, default=0)
     monto_final = Column(Numeric(14, 2))
+    diferencia = Column(Numeric(14, 2))
     estado = Column(String(20), nullable=False, default='ABIERTO')
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
 
