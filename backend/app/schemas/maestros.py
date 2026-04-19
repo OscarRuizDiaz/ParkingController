@@ -24,3 +24,12 @@ class ClienteResponse(ClienteBase):
 class ClienteSearch(BaseModel):
     tipo_documento: str
     numero_documento: str
+
+class CajaResponse(BaseModel):
+    id_caja: int
+    nombre: str
+    sucursal: Optional[str] = None
+    activo: bool
+
+    class Config:
+        from_attributes = True

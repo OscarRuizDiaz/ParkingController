@@ -1,7 +1,14 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from "framer-motion";
 import { apiService } from "./services/api";
 import { mapBackendError, getLoadingMessage } from "./utils/ui-messages";
-import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "./auth/useAuth";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { PermissionGate } from "./auth/PermissionGate";
+import { PERMISSIONS } from "./auth/constants/permissions";
+import { SCREEN_CONFIG, getScreenById } from './config/screens';
+import LoginScreen from "./pages/LoginScreen";
+
 import {
   Search,
   CreditCard,
@@ -27,10 +34,10 @@ import {
   DoorClosed,
   Calculator,
   ArrowLeft,
-  ClipboardList
+  ClipboardList,
+  Shield,
+  ShieldAlert
 } from "lucide-react";
-
-// Alias se eliminan para evitar redeclaración.
 
 const formatter = new Intl.NumberFormat("es-PY");
 
@@ -39,10 +46,6 @@ function Money({ value }) {
   return <span>Gs. {formatter.format(Number.isNaN(safeValue) ? 0 : safeValue)}</span>;
 }
 
-/**
- * Componente para impresión de ticket térmico.
- * Visible únicamente en modo impresión (CSS media: print).
- */
 function PrintableReceipt({ paymentResult }) {
   if (!paymentResult) return null;
 
@@ -144,34 +147,42 @@ function StatusAlert({ alert }) {
   );
 }
 
-function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext, turnoActual }) {
-  const screens = [
-    { id: "caja", label: "Caja Principal", icon: ScanLine },
-    { id: "resultado", label: "Resumen de Cobro", restricted: true, icon: CheckCircle2 },
-    { id: "cliente", label: "Facturación Fiscal", restricted: true, icon: Receipt },
-    { id: "turno", label: "Gestión de Turnos", icon: Calculator },
-    { id: "tarifa", label: "Config. Tarifa", icon: Settings },
-  ];
+function AppShell({ children, currentScreen, onNavigate, hasPaymentContext, turnoActual, resumenTurno }) {
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 print:bg-white p-0">
       <header className="border-b bg-white print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              ParkingController
-            </h1>
-            <p className="text-sm text-slate-500">
-              Módulo de Caja y Facturación
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-900 p-2 rounded-xl">
+              <CarFront className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-900">
+                ParkingController
+              </h1>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                SISTEMA POS & FACTURACIÓN
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium">
-              POS
-            </span>
-            <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
-              V1.2
-            </span>
+          
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-sm font-bold text-slate-900">{user?.nombre}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
+                {user?.role}
+              </span>
+            </div>
+            <button 
+              onClick={logout}
+              className="group flex items-center gap-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 px-4 py-2 rounded-xl transition-all border border-transparent hover:border-red-100 active:scale-95"
+              title="Cerrar Sesión"
+            >
+              <DoorClosed className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+              <span className="text-sm font-bold">Salir</span>
+            </button>
           </div>
         </div>
       </header>
@@ -179,33 +190,33 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
       <div className="mx-auto grid max-w-7xl grid-cols-12 gap-6 px-6 py-6 print:block">
         <aside className="col-span-12 lg:col-span-3 print:hidden">
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Pantallas</h2>
+            <h2 className="text-lg font-semibold">Menú Operativo</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Navegación del flujo operativo.
+              Módulos autorizados para su perfil.
             </p>
 
             <div className="mt-5 space-y-2">
-              {screens.map((screen) => {
-                const isDisabled = screen.restricted && !hasPaymentContext;
-                const Icon = screen.icon || ScanLine;
-                return (
-                  <button
-                    key={screen.id}
-                    onClick={() => !isDisabled && setCurrentScreen(screen.id)}
-                    disabled={isDisabled}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition flex items-center gap-3 ${currentScreen === screen.id
-                      ? "border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-200"
-                      : isDisabled
-                        ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
-                        : "bg-white text-slate-800 border-slate-100 hover:border-slate-300 hover:bg-slate-50"
+              {SCREEN_CONFIG
+                .filter(s => {
+                  const isHidden = s.hiddenMenu;
+                  const isRestrictedAndNoContext = s.restricted && !hasPaymentContext;
+                  return !isHidden && !isRestrictedAndNoContext;
+                })
+                .map(item => (
+                  <PermissionGate key={item.id} permission={item.permission}>
+                    <button
+                      onClick={() => onNavigate(item.id)}
+                      className={`flex items-center gap-3 w-full p-4 rounded-2xl font-bold transition-all ${
+                        currentScreen === item.id 
+                          ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' 
+                          : 'text-slate-500 hover:bg-slate-50'
                       }`}
-                  >
-                    <Icon className={`h-4 w-4 ${currentScreen === screen.id ? "text-amber-400" : "text-slate-400"}`} />
-                    <span className="flex-1">{screen.label}</span>
-                    {isDisabled && <Clock3 className="h-3 w-3 opacity-50" />}
-                  </button>
-                );
-              })}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </button>
+                  </PermissionGate>
+              ))}
             </div>
 
             <hr className="my-5" />
@@ -213,11 +224,18 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
             <div className="space-y-4">
               <div className="text-xs font-bold uppercase text-slate-400">Estado de Caja</div>
               {turnoActual ? (
-                <div className="flex items-center gap-3 rounded-xl bg-green-50 border border-green-100 p-3">
-                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <div className="text-sm font-bold text-green-900">
-                    ID #{turnoActual.id_turno} - ABIERTO
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-green-50 border border-green-100 p-3">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <div className="text-sm font-bold text-green-900">
+                      ID #{turnoActual.id_turno} - ABIERTO
+                    </div>
                   </div>
+                  {resumenTurno?.nombre_caja && (
+                    <div className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1 px-1">
+                      <DoorOpen className="h-3 w-3" /> {resumenTurno.nombre_caja}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-3 rounded-xl bg-red-50 border border-red-100 p-3 text-red-700">
@@ -241,6 +259,217 @@ function AppShell({ children, currentScreen, setCurrentScreen, hasPaymentContext
           </motion.div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function SupervisionScreen({ alert, setAlert }) {
+  const [turnos, setTurnos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTurno, setSelectedTurno] = useState(null);
+  const [montoFinal, setMontoFinal] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const { user } = useAuth();
+
+  const fetchTurnos = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await apiService.caja_getAbiertas();
+      setTurnos(data);
+    } catch (err) {
+      setAlert({ title: "Error Supervision", message: err.message, type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [setAlert]);
+
+  useEffect(() => {
+    fetchTurnos();
+  }, [fetchTurnos]);
+
+  const handleCierreForzado = async () => {
+    if (!selectedTurno || !montoFinal || !motivo) return;
+    
+    setAlert(getLoadingMessage("cobrando"));
+    try {
+      await apiService.caja_cerrarForzado(selectedTurno.id_turno, {
+        monto_final_declarado: montoFinal,
+        motivo: motivo
+      });
+      
+      setAlert({ 
+        title: "Cierre Exitoso", 
+        message: `El turno #${selectedTurno.id_turno} ha sido cerrado administrativamente.`, 
+        type: "success" 
+      });
+      
+      setShowModal(false);
+      setSelectedTurno(null);
+      setMontoFinal("");
+      setMotivo("");
+      fetchTurnos();
+    } catch (err) {
+      setAlert({ title: "Error en Cierre", message: err.message, type: "error" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <Shield className="h-8 w-8 text-blue-600" /> Supervisión de Cajas
+          </h1>
+          <p className="text-slate-500">Monitorización global de turnos abiertos y control administrativo.</p>
+        </div>
+        <button 
+          onClick={fetchTurnos}
+          disabled={loading}
+          className="p-3 rounded-xl bg-white border hover:bg-slate-50 transition-all active:scale-95"
+          title="Actualizar lista"
+        >
+          <Zap className={`h-5 w-5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 italic text-slate-400">
+           <Loader2 className="h-10 w-10 animate-spin mb-4" />
+           Cargando estado global de cajas...
+        </div>
+      ) : turnos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 text-center">
+           <CheckCircle2 className="h-16 w-16 text-green-200 mb-6" />
+           <h3 className="text-xl font-bold text-slate-900">Operación Limpia</h3>
+           <p className="text-slate-500 max-w-sm mx-auto mt-2">No se detectaron turnos abiertos en este momento en ninguna sucursal.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          <div className="grid grid-cols-12 px-6 py-3 text-xs font-bold uppercase text-slate-400 tracking-widest">
+            <div className="col-span-3">Operador</div>
+            <div className="col-span-2 text-center">Caja</div>
+            <div className="col-span-2 text-center">Apertura</div>
+            <div className="col-span-2 text-right">Ventas (Ef.)</div>
+            <div className="col-span-3 text-right">Acción</div>
+          </div>
+          {turnos.map(t => {
+            const isOwn = Number(t.id_usuario) === Number(user?.id_usuario);
+            return (
+              <motion.div 
+                key={t.id_turno}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`grid grid-cols-12 items-center px-6 py-5 bg-white rounded-2xl border shadow-sm transition-all hover:shadow-md ${isOwn ? 'border-blue-200 ring-2 ring-blue-50' : 'border-slate-200'}`}
+              >
+                <div className="col-span-3 flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold ${isOwn ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {t.usuario_nombre.substring(0,2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 flex items-center gap-2">
+                       {t.usuario_nombre}
+                       {isOwn && <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded uppercase">Mí Turno</span>}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">ID #{t.id_turno}</div>
+                  </div>
+                </div>
+                <div className="col-span-2 text-center text-sm font-semibold text-slate-600">
+                  {t.nombre_caja}
+                </div>
+                <div className="col-span-2 text-center text-[11px] font-medium text-slate-500">
+                  {new Date(t.fecha_hora_apertura).toLocaleTimeString()}
+                </div>
+                <div className="col-span-2 text-right font-black text-slate-900">
+                  <Money value={t.total_efectivo} />
+                </div>
+                <div className="col-span-3 text-right">
+                   {isOwn ? (
+                      <span className="text-xs text-blue-500 font-bold italic px-4 py-2 opacity-60">Operación en curso...</span>
+                   ) : (
+                      <button 
+                        onClick={() => {
+                          setSelectedTurno(t);
+                          setShowModal(true);
+                        }}
+                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-95 border border-red-100"
+                      >
+                         Intervenir Cierre
+                      </button>
+                   )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm px-4">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+            <div className="flex justify-center mb-6">
+               <div className="bg-red-100 p-4 rounded-full">
+                  <ShieldAlert className="h-10 w-10 text-red-600" />
+               </div>
+            </div>
+            <h2 className="text-2xl font-bold text-center text-slate-900">Cierre Administrativo</h2>
+            <p className="mt-2 text-sm text-slate-500 text-center">
+              Intervención del turno <span className="font-bold text-slate-900">#{selectedTurno?.id_turno}</span> de <span className="font-bold text-slate-900">{selectedTurno?.usuario_nombre}</span>.
+            </p>
+
+            <div className="mt-8 space-y-5">
+              <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex gap-3 text-red-800 text-xs">
+                 <AlertTriangle className="h-5 w-5 shrink-0" />
+                 <p>Esta es una acción crítica que quedará registrada bajo su firma digital para auditoría de sucursal.</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Efectivo Físico Arqueado (Gs.)</label>
+                <input 
+                  type="number"
+                  autoFocus
+                  className="h-14 w-full rounded-2xl border-2 border-slate-200 px-6 text-2xl font-black outline-none focus:border-red-600 transition-all"
+                  placeholder="0"
+                  value={montoFinal}
+                  onChange={(e) => setMontoFinal(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Motivo / Justificación</label>
+                <textarea 
+                  rows="3"
+                  className="w-full rounded-2xl border-2 border-slate-200 p-4 text-sm font-medium outline-none focus:border-red-600 transition-all resize-none"
+                  placeholder="Especifique el motivo de la intervención..."
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-3">
+              <button 
+                onClick={handleCierreForzado}
+                disabled={!montoFinal || !motivo}
+                className="w-full bg-red-600 text-white rounded-2xl py-4 font-bold shadow-lg shadow-red-200 hover:bg-red-700 transition-all active:scale-95 disabled:opacity-30"
+              >
+                PROCEDER CON CIERRE FORZADO 🔒
+              </button>
+              <button 
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedTurno(null);
+                  setMontoFinal("");
+                  setMotivo("");
+                }} 
+                className="w-full text-slate-400 font-bold py-2 hover:text-slate-600 transition-colors"
+              >
+                Cancelar Intervención
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
@@ -296,40 +525,46 @@ function CajaPrincipal({
 
               <div className="w-full md:w-44">
                 <label className="mb-2 block text-sm font-medium text-slate-700">Modo Cálculo</label>
-                <select 
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900"
-                  value={modoCalculo}
-                  onChange={(e) => setModoCalculo(e.target.value)}
-                >
-                  <option value="AUTOMATICO">🕒 AUTOMÁTICO</option>
-                  <option value="MANUAL">⌨️ MANUAL</option>
-                </select>
+                <PermissionGate permission={PERMISSIONS.TICKETS_SIMULAR} mode="disable">
+                  <select 
+                    className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900 disabled:opacity-50"
+                    value={modoCalculo}
+                    onChange={(e) => setModoCalculo(e.target.value)}
+                  >
+                    <option value="AUTOMATICO">🕒 AUTOMÁTICO</option>
+                    <option value="MANUAL">⌨️ MANUAL</option>
+                  </select>
+                </PermissionGate>
               </div>
 
               {modoCalculo === "MANUAL" && (
                 <div className="w-full md:w-32">
                   <label className="mb-2 block text-sm font-medium text-slate-700">Minutos</label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="h-12 w-full rounded-xl border border-slate-300 px-4 text-base font-bold outline-none focus:border-slate-900"
-                    placeholder="Min."
-                    value={manualMinutes}
-                    onChange={(e) => setManualMinutes(parseInt(e.target.value) || 0)}
-                  />
+                  <PermissionGate permission={PERMISSIONS.TICKETS_SIMULAR} mode="disable">
+                    <input
+                      type="number"
+                      min="1"
+                      className="h-12 w-full rounded-xl border border-slate-300 px-4 text-base font-bold outline-none focus:border-slate-900 disabled:opacity-50"
+                      placeholder="Min."
+                      value={manualMinutes}
+                      onChange={(e) => setManualMinutes(parseInt(e.target.value) || 0)}
+                    />
+                  </PermissionGate>
                 </div>
               )}
 
-              <button
-                className="h-12 rounded-xl bg-slate-900 px-8 text-white hover:bg-slate-800 disabled:opacity-50 shadow-sm transition-all active:scale-95 mb-0.5"
-                onClick={() => onSearch()}
-                disabled={alert?.type === "loading" || !turnoActual || !searchCode || (modoCalculo === "MANUAL" && !manualMinutes)}
-              >
-                <span className="inline-flex items-center gap-2">
-                  {alert?.type === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Consultar
-                </span>
-              </button>
+              <PermissionGate permission={PERMISSIONS.TICKETS_BUSCAR} mode="disable">
+                <button
+                  className="h-12 rounded-xl bg-slate-900 px-8 text-white hover:bg-slate-800 disabled:opacity-50 shadow-sm transition-all active:scale-95 mb-0.5"
+                  onClick={() => onSearch()}
+                  disabled={alert?.type === "loading" || !turnoActual || !searchCode || (modoCalculo === "MANUAL" && !manualMinutes)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {alert?.type === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Consultar
+                  </span>
+                </button>
+              </PermissionGate>
             </div>
 
             <div className="mt-6">
@@ -382,13 +617,15 @@ function CajaPrincipal({
               <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 flex flex-col justify-center">
                 <div className="mb-2 text-sm font-semibold text-slate-800">Acciones Operativas</div>
                 <div className="flex gap-3">
-                  <button
-                    className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm shadow-blue-200 transition-all font-semibold active:scale-95"
-                    onClick={() => setShowConfirm(true)}
-                    disabled={!ticket || ticket.estado === "COBRADO" || ticket.estado === "FACTURADO" || alert?.type === "loading"}
-                  >
-                    Confirmar Cobro
-                  </button>
+                  <PermissionGate permission={PERMISSIONS.TICKETS_COBRAR} mode="disable">
+                    <button
+                      className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm shadow-blue-200 transition-all font-semibold active:scale-95"
+                      onClick={() => setShowConfirm(true)}
+                      disabled={!ticket || ticket.estado === "COBRADO" || ticket.estado === "FACTURADO" || alert?.type === "loading"}
+                    >
+                      Confirmar Cobro
+                    </button>
+                  </PermissionGate>
                 </div>
               </div>
             </div>
@@ -462,7 +699,7 @@ function CajaPrincipal({
   );
 }
 
-function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
+function ResultadoScreen({ paymentResult, onContinueToInvoicing, onResetOperation }) {
   if (!paymentResult) {
     return (
       <div className="rounded-2xl border bg-white p-10 shadow-sm text-center">
@@ -536,7 +773,7 @@ function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
           </div>
 
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => onResetOperation()}
             className="w-full rounded-2xl border-2 border-dashed border-slate-300 py-4 text-slate-400 font-bold hover:bg-white hover:border-slate-400 transition-all"
           >
             Nueva Operación de Caja
@@ -544,53 +781,55 @@ function ResultadoScreen({ paymentResult, onContinueToInvoicing }) {
         </aside>
       </div>
 
-      {/* Componente oculto para impresión */}
       <PrintableReceipt paymentResult={paymentResult} />
     </div>
   );
 }
 
-function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setAlert }) {
+function TurnoScreen({ turnoActual, resumen, onTurnoChanged, onRefreshResumen, onCierreSuccess, alert, setAlert }) {
   const [opening, setOpening] = useState(false);
   const [montoInicial, setMontoInicial] = useState(50000);
-  const [resumen, setResumen] = useState(null);
   const [showCierre, setShowCierre] = useState(false);
   const [montoFinal, setMontoFinal] = useState("");
+  const [cajasDisponibles, setCajasDisponibles] = useState([]);
+  const [selectedCajaId, setSelectedCajaId] = useState("");
+  const [loadingCajas, setLoadingCajas] = useState(false);
 
+  // No resetear selectedCajaId agresivamente para evitar pérdida de selección manual
   useEffect(() => {
-    if (turnoActual) {
-      apiService.caja_getResumen()
-        .then(setResumen)
-        .catch(err => console.error("Error resumen:", err));
+    if (!turnoActual) {
+      setLoadingCajas(true);
+      apiService.maestros_getCajasDisponibles()
+        .then(data => {
+          setCajasDisponibles(data);
+          // Solo pre-seleccionar si no hay nada elegido previamente
+          if (data.length > 0) {
+            setSelectedCajaId(prev => prev || String(data[0].id_caja));
+          }
+        })
+        .catch(err => {
+          console.error("Error cargando cajas:", err);
+          setAlert({ 
+            title: "Error de Maestros", 
+            message: "No se pudieron recuperar las cajas disponibles. Verifique su conexión.", 
+            type: "error" 
+          });
+        })
+        .finally(() => setLoadingCajas(false));
     }
-  }, [turnoActual]);
+  }, [turnoActual, setAlert]);
 
   const handleOpen = async () => {
+    if (!selectedCajaId) return;
     setOpening(true);
     setAlert(getLoadingMessage("cobrando"));
     try {
-      const nuevo = await apiService.caja_abrir(1, montoInicial);
+      const limpioMonto = Math.max(0, parseFloat(montoInicial) || 0);
+      const nuevo = await apiService.caja_abrir(String(selectedCajaId), limpioMonto);
       onTurnoChanged(nuevo);
+      if (onRefreshResumen) await onRefreshResumen();
       setAlert({ title: "Caja Abierta", message: "Ya puede comenzar a operar.", type: "success" });
     } catch (err) {
-      const errorMsg = err.message || "";
-      if (errorMsg.includes("ya tiene un turno abierto")) {
-        // RECUPERACIÓN AUTOMÁTICA
-        try {
-          const existente = await apiService.caja_getActual();
-          if (existente) {
-             onTurnoChanged(existente);
-             setAlert({ 
-               title: "Turno Recuperado", 
-               message: "Se detectó y recuperó un turno que ya estaba abierto.", 
-               type: "success" 
-             });
-             return;
-          }
-        } catch (syncErr) {
-          console.error("Error en rescate de turno:", syncErr);
-        }
-      }
       setAlert({ title: "Error al abrir", message: err.message, type: "error" });
     } finally {
       setOpening(false);
@@ -605,7 +844,6 @@ function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setA
       onTurnoChanged(null);
       setShowCierre(false);
       
-      // Guardar el resumen para el informe
       if (onCierreSuccess) {
         onCierreSuccess(resumenFinal);
       }
@@ -627,10 +865,29 @@ function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setA
 
         <div className="rounded-3xl border bg-white p-8 shadow-sm space-y-6">
           <div>
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Caja Seleccionada</label>
-            <div className="h-12 w-full rounded-xl border border-slate-100 bg-slate-50 px-4 flex items-center font-bold text-slate-800">
-               Caja Principal #1 - Sucursal Centro
-            </div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Posición Física / Caja</label>
+            {loadingCajas ? (
+              <div className="h-12 w-full rounded-xl border border-slate-100 bg-slate-50 px-4 flex items-center text-slate-400 italic">
+                Cargando cajas disponibles...
+              </div>
+            ) : cajasDisponibles.length > 0 ? (
+              <select
+                className="h-14 w-full rounded-2xl border-2 border-slate-200 px-6 text-lg font-bold outline-none focus:border-slate-900 transition-all bg-white"
+                value={selectedCajaId}
+                onChange={(e) => setSelectedCajaId(e.target.value)}
+              >
+                {cajasDisponibles.map(c => (
+                  <option key={c.id_caja} value={c.id_caja}>
+                    {c.nombre} {c.sucursal ? `- ${c.sucursal}` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm font-bold flex gap-3">
+                <AlertCircle className="h-5 w-5" />
+                No hay cajas disponibles para apertura en este momento.
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Monto Inicial (Gs.)</label>
@@ -642,7 +899,7 @@ function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setA
             />
           </div>
           <button 
-            disabled={opening}
+            disabled={opening || !selectedCajaId || cajasDisponibles.length === 0}
             onClick={handleOpen}
             className="w-full bg-slate-900 text-white rounded-2xl py-5 text-lg font-bold hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
           >
@@ -660,12 +917,14 @@ function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setA
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Panel de Caja</h1>
             <p className="text-slate-500">Monitoreo y cierre del turno ID #{turnoActual.id_turno}.</p>
           </div>
-          <button 
-            onClick={() => setShowCierre(true)}
-            className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-red-700 transition-all active:scale-95 flex items-center gap-2"
-          >
-            <DoorClosed className="h-5 w-5" /> Cerrar Caja
-          </button>
+          <PermissionGate permission={PERMISSIONS.CAJA_CERRAR}>
+            <button 
+              onClick={() => setShowCierre(true)}
+              className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-red-700 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <DoorClosed className="h-5 w-5" /> Cerrar Caja
+            </button>
+          </PermissionGate>
        </div>
 
        <div className="grid gap-6 md:grid-cols-2">
@@ -690,7 +949,7 @@ function TurnoScreen({ turnoActual, onTurnoChanged, onCierreSuccess, alert, setA
                 <div className="space-y-3 mt-4 text-sm">
                    <div className="flex justify-between border-b border-slate-800 pb-2">
                       <span className="text-slate-400">Usuario</span>
-                      <span className="font-bold uppercase">{resumen?.usuario_nombre || "CAJERO_DEMO"}</span>
+                      <span className="font-bold uppercase">{resumen?.usuario_nombre || "Cargando..."}</span>
                    </div>
                    <div className="flex justify-between border-b border-slate-800 pb-2">
                       <span className="text-slate-400">Apertura</span>
@@ -773,7 +1032,7 @@ function TarifaScreen({ alert, setAlert }) {
     try {
       const data = await apiService.getTarifaActiva();
       setTarifa(data);
-      setAlert(null); // Limpiar alertas globales si la carga es exitosa
+      setAlert(null);
     } catch (err) {
       console.error("Error cargando tarifa:", err);
       setErrorTarifa(err.message || "No se pudo recuperar la tarifa activa.");
@@ -856,12 +1115,14 @@ function TarifaScreen({ alert, setAlert }) {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Motor Tarifario</h1>
           <p className="text-slate-500">Configure las reglas de cálculo de importe para el estacionamiento.</p>
         </div>
-        <button
-          onClick={handleSave}
-          className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
-        >
-          Guardar Cambios
-        </button>
+        <PermissionGate permission={PERMISSIONS.TARIFAS_EDIT}>
+          <button
+            onClick={handleSave}
+            className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
+          >
+            Guardar Cambios
+          </button>
+        </PermissionGate>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
@@ -873,31 +1134,37 @@ function TarifaScreen({ alert, setAlert }) {
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Nombre de Tarifa</label>
-              <input
-                className="h-12 w-full rounded-xl border border-slate-200 px-4 font-medium outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
-                value={tarifa.nombre || ""}
-                onChange={(e) => setTarifa({ ...tarifa, nombre: e.target.value })}
-              />
+              <PermissionGate permission={PERMISSIONS.TARIFAS_EDIT} mode="disable">
+                <input
+                  className="h-12 w-full rounded-xl border border-slate-200 px-4 font-medium outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-50"
+                  value={tarifa.nombre || ""}
+                  onChange={(e) => setTarifa({ ...tarifa, nombre: e.target.value })}
+                />
+              </PermissionGate>
             </div>
 
             <div className="grid gap-4 grid-cols-2">
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Monto Base (Gs)</label>
-                <input
-                  type="number"
-                  className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
-                  value={tarifa.valor_base || 0}
-                  onChange={(e) => setTarifa({ ...tarifa, valor_base: e.target.value })}
-                />
+                <PermissionGate permission={PERMISSIONS.TARIFAS_EDIT} mode="disable">
+                  <input
+                    type="number"
+                    className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-50"
+                    value={tarifa.valor_base || 0}
+                    onChange={(e) => setTarifa({ ...tarifa, valor_base: e.target.value })}
+                  />
+                </PermissionGate>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Bloque Base (Min)</label>
-                <input
-                  type="number"
-                  className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
-                  value={tarifa.fraccion_minutos || 0}
-                  onChange={(e) => setTarifa({ ...tarifa, fraccion_minutos: e.target.value })}
-                />
+                <PermissionGate permission={PERMISSIONS.TARIFAS_EDIT} mode="disable">
+                  <input
+                    type="number"
+                    className="h-12 w-full rounded-xl border border-slate-200 px-4 font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all disabled:opacity-50"
+                    value={tarifa.fraccion_minutos || 0}
+                    onChange={(e) => setTarifa({ ...tarifa, fraccion_minutos: e.target.value })}
+                  />
+                </PermissionGate>
               </div>
             </div>
 
@@ -908,14 +1175,19 @@ function TarifaScreen({ alert, setAlert }) {
                   { id: "BLOQUE_FIJO", label: "Bloque Fijo (Redondeo arriba)", desc: "40 min = 1 bloque, 61 min = 2 bloques" },
                   { id: "BASE_MAS_EXCEDENTE_PROPORCIONAL", label: "Base + Excedente Proporcional", desc: "Base por 1er bloque + cargo por cada min adicional" }
                 ].map(mode => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setTarifa({ ...tarifa, modo_calculo: mode.id })}
-                    className={`p-4 text-left rounded-2xl border-2 transition-all ${tarifa.modo_calculo === mode.id ? "border-slate-900 bg-slate-50" : "border-slate-100 hover:border-slate-200"}`}
+                  <PermissionGate 
+                    key={mode.id} 
+                    permission={PERMISSIONS.TARIFAS_MODO_CALCULO} 
+                    mode="disable"
                   >
-                    <div className="font-bold text-slate-900">{mode.label}</div>
-                    <div className="text-xs text-slate-500 mt-1">{mode.desc}</div>
-                  </button>
+                    <button
+                      onClick={() => setTarifa({ ...tarifa, modo_calculo: mode.id })}
+                      className={`p-4 text-left rounded-2xl border-2 w-full transition-all ${tarifa.modo_calculo === mode.id ? "border-slate-900 bg-slate-50" : "border-slate-100 hover:border-slate-200"}`}
+                    >
+                      <div className="font-bold text-slate-900">{mode.label}</div>
+                      <div className="text-xs text-slate-500 mt-1">{mode.desc}</div>
+                    </button>
+                  </PermissionGate>
                 ))}
               </div>
             </div>
@@ -997,7 +1269,7 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
       condicion_venta: "CONTADO"
     };
 
-    setAlert(getLoadingMessage("cobrando")); // Reutilizamos mensaje de cobro (facturando)
+    setAlert(getLoadingMessage("cobrando"));
 
     try {
       const res = await apiService.facturar(payload);
@@ -1014,7 +1286,6 @@ function ClienteScreen({ paymentResult, facturaResult, onInvoiceSuccess, alert, 
 
   if (!paymentResult) return <ResultadoScreen />;
 
-  // Cálculo seguro o valores de backend
   const fiscalDetail = useMemo(() => {
     if (facturaResult) {
       return {
@@ -1372,6 +1643,7 @@ function PrintableTurnoReport({ cierreResult }) {
 }
 
 export default function App() {
+  const { isAuthenticated, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState("caja");
   const [ticket, setTicket] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -1382,18 +1654,40 @@ export default function App() {
   const [modoCalculo, setModoCalculo] = useState("AUTOMATICO");
   const [manualMinutes, setManualMinutes] = useState(0);
   const [turnoActual, setTurnoActual] = useState(null);
+  const [resumenTurno, setResumenTurno] = useState(null);
   const [cierreResult, setCierreResult] = useState(null);
 
-  // Inicialización: Cargar turno actual
+  const fetchResumen = useCallback(async () => {
+    if (!turnoActual) return;
+    try {
+      const data = await apiService.caja_getResumen();
+      setResumenTurno(data);
+    } catch (err) {
+      console.error("App: Error cargando resumen global:", err);
+      // Solo alertar si no es un error de "sin turno" (aunque filtramos arriba)
+      setAlert({ title: "Error de Datos", message: "No se pudo sincronizar el resumen de caja.", type: "warning" });
+    }
+  }, [turnoActual]);
+
   useEffect(() => {
-    console.log("App: Verificando turno de caja al iniciar...");
+    if (turnoActual) {
+      fetchResumen();
+    } else {
+      setResumenTurno(null);
+    }
+  }, [turnoActual, fetchResumen]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTurnoActual(null);
+      return;
+    }
+    
     apiService.caja_getActual()
       .then(turno => {
         if (turno) {
-          console.log("App: Turno recuperado:", turno.id_turno);
           setTurnoActual(turno);
         } else {
-          console.log("App: No hay turno activo.");
           setTurnoActual(null);
         }
       })
@@ -1401,9 +1695,19 @@ export default function App() {
         console.error("App: Error cargando turno inicial:", err);
         setTurnoActual(null);
       });
+  }, [isAuthenticated]);
+
+  const handleResetOperation = useCallback(() => {
+    setTicket(null);
+    setSearchCode("");
+    setAlert(null);
+    setPaymentResult(null);
+    setFacturaResult(null);
+    setManualMinutes(0);
+    setModoCalculo("AUTOMATICO");
+    setCurrentScreen("caja");
   }, []);
 
-  // Limpieza de estado al navegar
   useEffect(() => {
     setAlert(null);
     if (currentScreen === "caja") {
@@ -1470,13 +1774,16 @@ export default function App() {
         modoCalculo === "MANUAL" ? manualMinutes : null
       );
       setPaymentResult(result);
-      setFacturaResult(null); // Limpiar factura previa si existe
+      setFacturaResult(null);
 
       setAlert({
         title: "Cobro registrado correctamente",
         message: "La operación fue registrada en caja y el ticket quedó en estado COBRADO.",
         type: "success"
       });
+
+      // Refrescar resumen de caja inmediatamente tras el cobro
+      await fetchResumen();
 
       setCurrentScreen("resultado");
       return true;
@@ -1488,8 +1795,6 @@ export default function App() {
 
   const handleInvoiceSuccess = (result) => {
     setFacturaResult(result);
-    // Podríamos opcionalmente navegar a una pantalla de "Factura Exitosa" 
-    // pero por ahora el mensaje de éxito en ClienteScreen es suficiente.
   };
 
   const content = useMemo(() => {
@@ -1499,6 +1804,7 @@ export default function App() {
           <ResultadoScreen
             paymentResult={paymentResult}
             onContinueToInvoicing={() => setCurrentScreen("cliente")}
+            onResetOperation={handleResetOperation}
           />
         );
       case "cliente":
@@ -1513,11 +1819,15 @@ export default function App() {
         );
       case "tarifa":
         return <TarifaScreen alert={alert} setAlert={setAlert} />;
+      case "supervision":
+        return <SupervisionScreen alert={alert} setAlert={setAlert} />;
       case "turno":
         return (
           <TurnoScreen 
             turnoActual={turnoActual} 
+            resumen={resumenTurno}
             onTurnoChanged={setTurnoActual}
+            onRefreshResumen={fetchResumen}
             onCierreSuccess={(res) => {
               setCierreResult(res);
               setCurrentScreen("cierre_resultado");
@@ -1571,16 +1881,51 @@ export default function App() {
           />
         );
     }
-  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert, modoCalculo, manualMinutes, turnoActual, cierreResult]);
+  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert, modoCalculo, manualMinutes, turnoActual, cierreResult, handleResetOperation]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 text-slate-900 animate-spin" />
+        <p className="text-slate-500 font-medium animate-pulse">Cargando sistema...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   return (
     <AppShell
       currentScreen={currentScreen}
-      setCurrentScreen={setCurrentScreen}
+      onNavigate={setCurrentScreen}
       hasPaymentContext={!!paymentResult}
       turnoActual={turnoActual}
+      resumenTurno={resumenTurno}
     >
-      {content}
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={currentScreen}
+           initial={{ opacity: 0, x: 10 }}
+           animate={{ opacity: 1, x: 0 }}
+           exit={{ opacity: 0, x: -10 }}
+           transition={{ duration: 0.2 }}
+        >
+          {(() => {
+            const screenConfig = getScreenById(currentScreen);
+
+            return (
+              <ProtectedRoute 
+                requiredPermission={screenConfig?.permission}
+                onGoHome={handleResetOperation}
+              >
+                {content}
+              </ProtectedRoute>
+            );
+          })()}
+        </motion.div>
+      </AnimatePresence>
       
       {/* Informe de cierre oculto para impresión */}
       <PrintableTurnoReport cierreResult={cierreResult} />

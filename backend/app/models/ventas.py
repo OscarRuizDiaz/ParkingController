@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Numeric, Text, ForeignKey, func, CheckConstraint
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Numeric, Text, ForeignKey, func, CheckConstraint, Index
 from app.models.base import Base
 
 class Caja(Base):
@@ -15,18 +15,24 @@ class TurnoCaja(Base):
     __tablename__ = "turnos_caja"
     __table_args__ = (
         CheckConstraint("estado IN ('ABIERTO', 'CERRADO', 'ANULADO')", name='chk_turno_estado'),
+        # Un usuario solo puede tener un turno abierto
+        Index('idx_unique_open_shift_per_user', 'id_usuario', unique=True, postgresql_where=(Column('estado') == 'ABIERTO')),
+        # Una caja física solo puede tener un turno abierto
+        Index('idx_unique_open_shift_per_box', 'id_caja', unique=True, postgresql_where=(Column('estado') == 'ABIERTO')),
         {"schema": "ventas"}
     )
 
     id_turno = Column(BigInteger, primary_key=True, autoincrement=True)
     id_caja = Column(BigInteger, ForeignKey("ventas.cajas.id_caja"), nullable=False)
     id_usuario = Column(BigInteger, ForeignKey("seguridad.usuarios.id_usuario"), nullable=False)
+    id_usuario_cierre = Column(BigInteger, ForeignKey("seguridad.usuarios.id_usuario"))
     fecha_hora_apertura = Column(DateTime, nullable=False, server_default=func.now())
     fecha_hora_cierre = Column(DateTime)
     monto_inicial = Column(Numeric(14, 2), nullable=False, default=0)
     monto_final = Column(Numeric(14, 2))
     diferencia = Column(Numeric(14, 2))
     estado = Column(String(20), nullable=False, default='ABIERTO')
+    motivo_cierre = Column(Text)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
 
 class Cobro(Base):

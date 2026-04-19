@@ -27,6 +27,10 @@ class AperturaCajaRequest(BaseSchema):
 class CierreCajaRequest(BaseSchema):
     monto_final_declarado: Decimal = Field(..., ge=0)
 
+class CierreForzadoRequest(BaseSchema):
+    monto_final_declarado: Decimal = Field(..., ge=0)
+    motivo: str = Field(..., min_length=5)
+
 class TurnoCajaResumenResponse(BaseSchema):
     id_turno: int
     id_caja: int
@@ -43,6 +47,10 @@ class TurnoCajaResumenResponse(BaseSchema):
     cantidad_cobros: int
     diferencia: Optional[Decimal] = None
     usuario_nombre: str
+    id_usuario: int
+    id_usuario_cierre: Optional[int] = None
+    usuario_cierre_nombre: Optional[str] = None
+    motivo_cierre: Optional[str] = None
 
 class TurnoCajaActualResponse(BaseSchema):
     id_turno: int
@@ -54,3 +62,5 @@ class TurnoCajaActualResponse(BaseSchema):
     monto_final: Optional[Decimal] = None
     diferencia: Optional[Decimal] = None
     estado: str
+    id_usuario_cierre: Optional[int] = None
+    motivo_cierre: Optional[str] = None

@@ -7,11 +7,13 @@ from app.api.v1.endpoints import (
     maestros, 
     facturacion, 
     tarifas, 
-    caja
+    caja,
+    login
 )
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["health"])
+api_router.include_router(login.router, tags=["login"])
 api_router.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
 api_router.include_router(ventas.router, prefix="/ventas", tags=["ventas"])
 api_router.include_router(maestros.router, prefix="/maestros", tags=["maestros"])

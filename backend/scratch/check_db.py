@@ -1,21 +1,13 @@
 from sqlalchemy import create_engine, inspect
-import sys
+import os
+from dotenv import load_dotenv
 
-db_url = "postgresql://postgres:postgres@localhost:5433/parking_db"
+load_dotenv()
+db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/parking_db")
 engine = create_engine(db_url)
 inspector = inspect(engine)
 
-def check_column():
-    columns = inspector.get_columns('turnos_caja', schema='ventas')
-    col_names = [c['name'] for c in columns]
-    if 'diferencia' in col_names:
-        print("COL_EXISTS")
-    else:
-        print("COL_MISSING")
-
-if __name__ == "__main__":
-    try:
-        check_column()
-    except Exception as e:
-        print(f"ERROR: {str(e)}")
-        sys.exit(1)
+schemas = ["audit", "maestros", "parking", "seguridad", "ventas", "facturacion"]
+for schema in schemas:
+    tables = inspector.get_table_names(schema=schema)
+    print(f"Schema {schema}: {tables}")
