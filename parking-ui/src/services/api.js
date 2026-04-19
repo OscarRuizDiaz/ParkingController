@@ -162,5 +162,30 @@ export const apiService = {
       })
     });
     return handleResponse(response, "Error en cierre forzado");
+  },
+
+  // === RBAC / SEGURIDAD ===
+  async rbac_getRoles() {
+    const response = await fetch(`${BASE_URL}/rbac/roles`, { headers: getAuthHeaders() });
+    return handleResponse(response, "Error obteniendo roles");
+  },
+
+  async rbac_getPermisosMaster() {
+    const response = await fetch(`${BASE_URL}/rbac/permisos`, { headers: getAuthHeaders() });
+    return handleResponse(response, "Error obteniendo catálogo de permisos");
+  },
+
+  async rbac_getRolDetalle(id_rol) {
+    const response = await fetch(`${BASE_URL}/rbac/roles/${id_rol}`, { headers: getAuthHeaders() });
+    return handleResponse(response, "Error obteniendo detalle del rol");
+  },
+
+  async rbac_updateRolPermisos(id_rol, permisos) {
+    const response = await fetch(`${BASE_URL}/rbac/roles/${id_rol}/permisos`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ permisos })
+    });
+    return handleResponse(response, "Error actualizando permisos del rol");
   }
 };

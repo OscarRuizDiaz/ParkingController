@@ -46,7 +46,8 @@ def login_access_token(
             "id": user.id_usuario,
             "username": user.username,
             "nombre": user.nombre_completo,
-            "role": user.rol.nombre if user.rol else "CAJERO"
+            "role": user.rol.nombre if user.rol else "CAJERO",
+            "permissions": [p.codigo for p in user.rol.permisos if p.activo] if user.rol else []
         }
     }
 
@@ -61,5 +62,6 @@ def read_user_me(
         "id": current_user.id_usuario,
         "username": current_user.username,
         "nombre": current_user.nombre_completo,
-        "role": current_user.rol.nombre if current_user.rol else "CAJERO"
+        "role": current_user.rol.nombre if current_user.rol else "CAJERO",
+        "permissions": [p.codigo for p in current_user.rol.permisos if p.activo] if current_user.rol else []
     }

@@ -1,14 +1,18 @@
-from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.api.deps.permissions import require_permission
+from app.models.seguridad import Usuario
 from app.schemas.parking import TarifaResponse, TarifaUpdate
 from app.repositories.parking_repo import tarifa_repo
 
 router = APIRouter()
 
 @router.get("/activa", response_model=TarifaResponse)
-def leer_tarifa_activa(db: Session = Depends(get_db)):
+def leer_tarifa_activa(
+    current_user: Usuario = Depends(require_permission("tarifas.view")),
+    db: Session = Depends(get_db)
+):
     """
     Obtiene la configuración de la tarifa actualmente activa en el sistema.
     """
@@ -20,6 +24,7 @@ def leer_tarifa_activa(db: Session = Depends(get_db)):
 @router.put("/activa", response_model=TarifaResponse)
 def actualizar_tarifa_activa(
     tarifa_in: TarifaUpdate,
+    current_user: Usuario = Depends(require_permission("tarifas.edit")),
     db: Session = Depends(get_db)
 ):
     """

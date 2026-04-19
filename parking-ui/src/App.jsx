@@ -8,6 +8,7 @@ import { PermissionGate } from "./auth/PermissionGate";
 import { PERMISSIONS } from "./auth/constants/permissions";
 import { SCREEN_CONFIG, getScreenById } from './config/screens';
 import LoginScreen from "./pages/LoginScreen";
+import RBACAdminScreen from "./pages/admin/RBACAdminScreen";
 
 import {
   Search,
@@ -1821,6 +1822,8 @@ export default function App() {
         return <TarifaScreen alert={alert} setAlert={setAlert} />;
       case "supervision":
         return <SupervisionScreen alert={alert} setAlert={setAlert} />;
+      case "rbac_admin":
+        return <RBACAdminScreen setAlert={setAlert} />;
       case "turno":
         return (
           <TurnoScreen 

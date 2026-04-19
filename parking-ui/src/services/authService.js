@@ -1,4 +1,4 @@
-import { ROLE_PERMISSIONS } from '../auth/constants/rolePermissions';
+// Eliminada dependencia de ROLE_PERMISSIONS hardcodeado
 
 const BASE_URL = "http://localhost:8000/api/v1";
 
@@ -29,7 +29,7 @@ export const authService = {
       username: data.user.username,
       nombre: data.user.nombre,
       role: userRole,
-      permissions: ROLE_PERMISSIONS[userRole] || [],
+      permissions: data.user.permissions || [],
       token: data.access_token
     };
   },
@@ -55,7 +55,7 @@ export const authService = {
         username: userData.username,
         nombre: userData.nombre,
         role: userRole,
-        permissions: ROLE_PERMISSIONS[userRole] || [],
+        permissions: userData.permissions || [],
         token: token
       };
     } catch (e) {

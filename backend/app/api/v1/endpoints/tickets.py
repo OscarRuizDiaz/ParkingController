@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.api.deps.permissions import require_permission
+from app.models.seguridad import Usuario
 from app.schemas.parking import (
     TicketCreate,
     TicketBusquedaResponse,
@@ -20,6 +22,7 @@ def get_parking_service(db: Session = Depends(get_db)) -> ParkingService:
 @router.post("/", response_model=TicketBusquedaResponse, status_code=status.HTTP_201_CREATED)
 def registrar_ticket(
     ticket_in: TicketCreate,
+    current_user: Usuario = Depends(require_permission("tickets.crear")),
     service: ParkingService = Depends(get_parking_service),
 ) -> TicketBusquedaResponse:
     try:
@@ -31,6 +34,7 @@ def registrar_ticket(
 @router.get("/{codigo_ticket}", response_model=TicketBusquedaResponse)
 def buscar_ticket(
     codigo_ticket: str,
+    current_user: Usuario = Depends(require_permission("tickets.buscar")),
     service: ParkingService = Depends(get_parking_service),
 ) -> TicketBusquedaResponse:
     ticket = service.buscar_ticket(codigo_ticket)
@@ -42,6 +46,7 @@ def buscar_ticket(
 @router.get("/{codigo_ticket}/simular", response_model=LiquidacionCalculadaResponse)
 def simular_liquidacion_ticket(
     codigo_ticket: str,
+    current_user: Usuario = Depends(require_permission("tickets.simular")),
     service: ParkingService = Depends(get_parking_service),
 ) -> LiquidacionCalculadaResponse:
     try:
@@ -53,6 +58,7 @@ def simular_liquidacion_ticket(
 @router.post("/simular-manual", response_model=LiquidacionCalculadaResponse)
 def simular_manual(
     req: SimulacionManualRequest,
+    current_user: Usuario = Depends(require_permission("tickets.simular")),
     service: ParkingService = Depends(get_parking_service),
 ) -> LiquidacionCalculadaResponse:
     """

@@ -4,7 +4,8 @@ import {
   Receipt, 
   Calculator, 
   Settings,
-  Shield
+  Shield,
+  ShieldAlert
 } from "lucide-react";
 import { PERMISSIONS } from "../auth/constants/permissions";
 
@@ -57,6 +58,12 @@ export const SCREEN_CONFIG = [
     label: "Supervisión Cajas",
     icon: Shield,
     permission: PERMISSIONS.CAJA_GESTION
+  },
+  {
+    id: "rbac_admin",
+    label: "Seguridad y Roles",
+    icon: ShieldAlert,
+    permission: PERMISSIONS.ROLES_VIEW
   }
 ];
 

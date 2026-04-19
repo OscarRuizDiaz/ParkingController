@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_user
+from app.api.deps.permissions import require_permission
 from app.models.seguridad import Usuario
 from app.schemas.ventas import CobroCreate, CobroResponse
 from app.services.ventas_service import VentasService
@@ -16,7 +15,7 @@ def get_ventas_service(db: Session = Depends(get_db)) -> VentasService:
 @router.post("/cobrar", response_model=CobroResponse, status_code=status.HTTP_201_CREATED)
 def registrar_cobro_ticket(
     cobro_in: CobroCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("tickets.cobrar")),
     service: VentasService = Depends(get_ventas_service),
 ) -> CobroResponse:
     """

@@ -62,8 +62,7 @@ export const AuthProvider = ({ children }) => {
   // Función de validación de permisos
   const hasPermission = useCallback((permission) => {
     if (!permission) return true;
-    if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission);
+    return user?.permissions?.includes(permission) || false;
   }, [user]);
 
   // Interceptor global para errores 401

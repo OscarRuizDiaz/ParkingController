@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.api.v1.deps import get_current_user
+from app.api.deps.permissions import require_permission
 from app.models.seguridad import Usuario
 from app.services.ventas_service import VentasService
 from app.schemas.ventas import (
@@ -22,7 +23,7 @@ def get_ventas_service(db: Session = Depends(get_db)) -> VentasService:
 @router.post("/abrir", response_model=TurnoCajaActualResponse)
 def abrir_caja(
     req: AperturaCajaRequest,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("caja.abrir")),
     service: VentasService = Depends(get_ventas_service)
 ) -> TurnoCajaActualResponse:
     """
@@ -49,7 +50,7 @@ def obtener_turno_actual(
 
 @router.get("/abiertas", response_model=List[TurnoCajaResumenResponse])
 def listar_turnos_abiertos(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("caja.gestion")),
     service: VentasService = Depends(get_ventas_service)
 ) -> List[TurnoCajaResumenResponse]:
     """
@@ -60,7 +61,7 @@ def listar_turnos_abiertos(
 
 @router.get("/resumen", response_model=TurnoCajaResumenResponse)
 def obtener_resumen_actual(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("caja.resumen")),
     service: VentasService = Depends(get_ventas_service)
 ) -> TurnoCajaResumenResponse:
     """
@@ -74,7 +75,7 @@ def obtener_resumen_actual(
 @router.post("/cerrar", response_model=TurnoCajaResumenResponse)
 def cerrar_caja(
     req: CierreCajaRequest,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("caja.cerrar")),
     service: VentasService = Depends(get_ventas_service)
 ) -> TurnoCajaResumenResponse:
     """
@@ -90,7 +91,7 @@ def cerrar_caja(
 def cerrar_caja_forzado(
     id_turno: int,
     req: CierreForzadoRequest,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_permission("caja.cierre_forzado")),
     service: VentasService = Depends(get_ventas_service)
 ) -> TurnoCajaResumenResponse:
     """
