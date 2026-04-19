@@ -1,46 +1,45 @@
-# Backlog Inicial - ParkingController
+# Backlog Inicial & Estado del Proyecto - ParkingController
 
-## Épica 1 - Base técnica
-- Inicializar backend FastAPI
-- Inicializar frontend React
-- Configurar PostgreSQL en desarrollo
-- Configurar variables de entorno
-- Crear estructura base del repositorio
+## ✅ Épica 1 - Base Técnica (Completado)
+- [x] Inicializar backend FastAPI.
+- [x] Inicializar frontend React.
+- [x] Configurar PostgreSQL en desarrollo (Multi-esquema).
+- [x] Configurar variables de entorno.
+- [x] Crear estructura base del repositorio (Repository/Service Pattern).
 
-## Épica 2 - Seguridad
-- Login
-- Roles
-- Permisos
-- Auditoría básica de acceso
+## ✅ Épica 2 - Seguridad y Accesos (Completado)
+- [x] Login con JWT funcional.
+- [x] **RBAC Dinámico puro**: Persistencia en BD y administración vía UI.
+- [x] Catálogo maestro de permisos.
+- [x] Matriz de edición de permisos por rol.
+- [x] Backend como Única Fuente de Verdad para permisos.
 
-## Épica 3 - Tickets y liquidación
-- Consulta de ticket
-- Validación de estado del ticket
-- Cálculo de minutos
-- Cálculo de monto
+## ✅ Épica 3 - Tickets y Liquidación (Completado)
+- [x] Consulta de ticket por código.
+- [x] Validación de estados (Pendiente, Liquidado, etc).
+- [x] Motor tarifario dinámico (Cálculo de minutos y montos).
 
-## Épica 4 - Clientes
-- Búsqueda por CI
-- Búsqueda por RUC
-- Alta rápida de cliente
+## ✅ Épica 4 - Clientes (Completado)
+- [x] Búsqueda por CI/RUC.
+- [x] Alta rápida de clientes desde el flujo de cobro.
 
-## Épica 5 - Caja
-- Apertura de caja
-- Registro de cobro
-- Cierre de caja
+## ✅ Épica 5 - Caja y Turnos (Completado)
+- [x] Apertura y cierre de turnos/cajas.
+- [x] Registro de cobro vinculado al turno activo.
+- [x] Control de arqueo y saldos.
 
-## Épica 6 - Facturación
-- Generación de factura
-- Cálculo de IVA
-- Reimpresión
+## 🚧 Épica 6 - Facturación (En Progreso)
+- [x] Generación de factura local.
+- [x] Cálculo de IVA automático.
+- [ ] Integración con SIFEN (Próxima fase).
 
-## Épica 7 - Reportes
-- Reporte diario de cobros
-- Reporte de facturación
-- Resumen por caja y cajero
+## 📊 Épica 7 - Reportes y Supervisión (En Progreso)
+- [x] Reporte diario de cobros simple.
+- [ ] Dashboard gerencial avanzado.
+- [x] Pantalla de supervisión de cajas.
 
-## Épica 8 - Preparación futura
-- Integración con proveedor de tickets
-- Integración SIFEN
-- Multi-sucursal
-- Tarifas avanzadas
+## 🚀 Épica 8 - Preparación Futuray Roadmap
+- [ ] Integración SIFEN (Facturación Electrónica Paraguay).
+- [ ] Multi-sucursal.
+- [ ] Terminales de Autopago.
+- [ ] Reconocimiento de Matrículas (LPR).

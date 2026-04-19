@@ -1,68 +1,76 @@
 # API Reference - ParkingController
 
-La API de ParkingController es una REST API construida con **FastAPI**, documentada automáticamente bajo el estándar OpenAPI (Swagger).
+La API de ParkingController es una REST API construida con **FastAPI**, documentada bajo el estándar OpenAPI (Swagger). La fuente de verdad para la documentación técnica en vivo es `/docs`.
 
-## Endpoints Principales
+## Autenticación & Autorización
 
-### 1. Tickets
-Manejo de estados y consultas de vehículos.
+El acceso a la mayoría de los endpoints requiere un token JWT válido.
+
+*   **`POST /api/v1/login/access-token`**
+    *   **Propósito**: Obtener un token de acceso y perfil de usuario.
+    *   **Response**: 
+        ```json
+        {
+          "access_token": "...",
+          "token_type": "bearer",
+          "user": {
+            "id": 1,
+            "username": "admin",
+            "role": "ADMINISTRADOR",
+            "permissions": ["roles.view", "roles.manage", "caja.view", ...]
+          }
+        }
+        ```
+
+*   **`GET /api/v1/usuarios/me`**
+    *   **Propósito**: Consultar el perfil y permisos del usuario autenticado actualmente.
+
+---
+
+## Módulo RBAC (Administración de Seguridad)
+
+Endpoints protegidos por el permiso `roles.view` y `roles.manage`.
+
+*   **`GET /api/v1/rbac/roles`**
+    *   **Response**: Lista plana de roles registrados con conteo de permisos.
+
+*   **`GET /api/v1/rbac/permisos`**
+    *   **Response**: Catálogo maestro de permisos completo (Matriz base).
+
+*   **`GET /api/v1/rbac/roles/{id_rol}`**
+    *   **Response**: Detalle del rol, incluyendo la lista de códigos de permisos asignados.
+
+*   **`PUT /api/v1/rbac/roles/{id_rol}/permisos`**
+    *   **Request Body**: `{"permisos": ["codigo_1", "codigo_2"]}`
+    *   **Propósito**: Actualización atómica de la asignación de permisos de un rol.
+
+---
+
+## Módulo de Tickets & Liquidaciones
 
 *   **`GET /api/v1/tickets/{codigo}`**
-    *   **Propósito**: Obtiene el estado actual de un ticket.
-    *   **Response**: `TicketResponse` (JSON).
+    *   **Propósito**: Consulta de estado de un ticket.
 
 *   **`GET /api/v1/tickets/{codigo}/simular`**
-    *   **Propósito**: Calcula el costo dinámico basado en la hora actual y la tarifa activa.
-    *   **Response**: `LiquidacionCalculadaResponse` (Incluye detalle de cálculo).
+    *   **Propósito**: Cálculo dinámico del costo basado en estancia y tarifa activa.
+    *   **Permiso requerido**: `tickets.view`
 
-### 2. Ventas y Cobranza
-Procesamiento de pagos en caja.
+---
+
+## Módulo de Caja & Ventas
 
 *   **`POST /api/v1/ventas/cobrar`**
-    *   **Request Body**:
-        ```json
-        {
-          "codigo_ticket": "TKT-12345",
-          "medio_pago": "EFECTIVO"
-        }
-        ```
-    *   **Response**: Detalle del cobro registrado e ID de transacción.
-
-### 3. Motor Tarifario
-Administración de las reglas de negocio.
-
-*   **`GET /api/v1/tarifas/activa`**
-    *   **Propósito**: Obtener la configuración vigente del tarifador.
-
-*   **`PUT /api/v1/tarifas/activa`**
-    *   **Request Body**:
-        ```json
-        {
-          "nombre": "Tarifa Estándar",
-          "modo_calculo": "BLOQUE_FIJO",
-          "valor_base": 40000,
-          "fraccion_minutos": 60,
-          "redondea_hacia_arriba": true
-        }
-        ```
-
-### 4. Facturación
-Emisión de comprobantes legales.
+    *   **Request Body**: `{"codigo_ticket": "...", "medio_pago": "..."}`
+    *   **Permiso requerido**: `tickets.cobrar`
 
 *   **`POST /api/v1/facturacion/emitir`**
-    *   **Request Body**:
-        ```json
-        {
-          "id_cobro": 45,
-          "tipo_documento": "CI",
-          "numero_documento": "1234567",
-          "nombre_razon_social": "Juan Pérez"
-        }
-        ```
-    *   **Response**: ID de Factura, Número de comprobante e IVA detallado.
+    *   **Permiso requerido**: `facturacion.emitir`
 
-## Errores Comunes
+---
 
-*   **`404 Not Found`**: El ticket no existe o la tarifa no ha sido inicializada.
-*   **`400 Bad Request`**: Intento de cobrar un ticket que ya está en estado `COBRADO`.
-*   **`500 Internal Server Error`**: Fallo en la persistencia de base de datos (se realiza rollback automático).
+## Errores Estándar
+
+*   **`401 Unauthorized`**: Token inválido o expirado.
+*   **`403 Forbidden`**: El usuario no posee el permiso (`permission coding`) necesario para esta acción.
+*   **`404 Not Found`**: El recurso solicitado no existe.
+*   **`422 Unprocessable Entity`**: Error de validación en el esquema enviado (Pydantic).

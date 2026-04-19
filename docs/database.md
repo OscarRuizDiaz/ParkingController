@@ -1,44 +1,63 @@
 # Schema de Base de Datos - ParkingController
 
-El sistema utiliza **PostgreSQL** con un esquema dedicado llamado `parking` para asegurar la integridad de los datos y facilitar auditorías.
+El sistema utiliza **PostgreSQL** con una estructura multiesquema para garantizar la separación de responsabilidades y la seguridad de los datos.
 
-## Tablas Principales
+## Esquemas de Datos
+
+1.  **`parking`**: Contiene toda la lógica operativa (tickets, cobros, facturas, tarifas).
+2.  **`seguridad`**: Dedicado exclusivamente al control de acceso y RBAC (usuarios, roles, permisos).
+
+---
+
+## Módulo Operativo (`parking`)
 
 ### 1. `tickets`
-Almacena los registros de entrada de los vehículos.
-- `id_ticket`: Identificador único (BigInt).
-- `codigo_ticket`: Código de barras o QR impreso para el cliente.
-- `fecha_ingreso`: Timestamp de entrada.
-- `estado`: Estado actual del ticket.
+Ciclo de vida del vehículo en el estacionamiento.
+- `id_ticket` (PK): Identificador secuencial.
+- `codigo_ticket` (Unique): Identificador de cara al cliente.
+- `fecha_ingreso` / `fecha_salida`: Tiempos de estancia.
+- `estado`: `PENDIENTE`, `LIQUIDADO`, `COBRADO`, `FACTURADO`.
 
 ### 2. `tarifas`
-Define las reglas de cobro configurables.
-- `id_tarifa`: ID de versión de tarifa.
-- `nombre`: Nombre descriptivo (ej: "Tarifa Nocturna").
-- `modo_calculo`: `BLOQUE_FIJO` o `BASE_MAS_EXCEDENTE_PROPORCIONAL`.
-- `valor_base`: Monto base (`Numeric`).
-- `fraccion_minutos`: Duración del bloque base en minutos.
-- `activo`: Booleano para indicar la tarifa vigente.
+Reglas de cálculo activas.
+- `id_tarifa` (PK).
+- `nombre`, `modo_calculo`, `valor_base`.
+- `activo`: Solo una tarifa puede estar activa para el cálculo de liquidaciones.
 
 ### 3. `liquidaciones`
-Registra el cálculo monetario realizado en el momento del cobro.
-- `id_liquidacion`: ID único.
-- `id_ticket`: Relación con el ticket.
-- `monto_total`: Monto final calculado (`Numeric`).
-- `minutos_estancia`: Tiempo total acumulado.
-- `detalle_json`: Almacena el desglose del cálculo para auditoría histórica.
+Registro histórico de montos calculados.
+- `id_liquidacion` (PK).
+- `monto_total`: Valor final cobrado.
+- `detalle_json`: Auditoría de la fórmula aplicada en el momento del cobro.
 
-## Estados del Ticket
+---
 
-El `estado` de un ticket es el corazón de la lógica de negocio y sigue este ciclo de vida:
+## Módulo de Seguridad (`seguridad`)
 
-1.  **`PENDIENTE`**: El vehículo está en el parking. El sistema calcula el costo en tiempo real para simulación.
-2.  **`LIQUIDADO`**: El operador ha escaneado el ticket y el sistema ha generado una liquidación. El valor se congela en este punto.
-3.  **`COBRADO`**: El pago ha sido registrado en caja. El ticket no permite más cambios.
-4.  **`FACTURADO`**: Se emitió un comprobante fiscal legal asociado al cobro.
+### 1. `roles`
+Definición de perfiles de acceso.
+- `nombre`: Único (ej: ADMINISTRADOR, SUPERVISOR).
+- `activo`: Permite deshabilitar un perfil completo.
 
-## Integridad Referencial
+### 2. `permisos` (Catálogo Maestro)
+Acciones lógicas permitidas en el sistema.
+- `codigo`: Identificador clave usado en backend y frontend (ej: `caja.view`).
+- `modulo`: Agrupación funcional (ej: `Caja`, `Administración`).
 
-- Un **Ticket** puede tener una única **Liquidación** vigente.
-- Una **Factura** se vincula a un **Cobro**, el cual está vinculado a una **Liquidación** y a un **Ticket**.
-- El borrado de tickets cobrados está restringido por integridad referencial para evitar pérdida de datos contables.
+### 3. `roles_permisos`
+Matriz dinámica de acceso.
+- Relación N:N entre roles y permisos. Es la base del **enforcement** de seguridad en tiempo real.
+
+### 4. `usuarios`
+Cuentas de acceso al sistema.
+- `username`: Identificador de login.
+- `password_hash`: Credencial cifrada (BCrypt).
+- `id_rol`: Vínculo directo con el perfil de permisos.
+
+---
+
+## Integridad y Estados
+
+- **Integridad Referencial**: No se permite la eliminación de tickets que posean liquidaciones o cobros asociados por razones contables.
+- **Transaccionalidad**: Las operaciones de caja (Turnos) se ejecutan bajo bloques de transacción atómicos para evitar inconsistencias de saldos ante errores de red.
+- **Auditabilidad**: El campo `detalle_json` en liquidaciones garantiza que, aunque cambie la tarifa global, se pueda reconstruir el cálculo original de cada ticket cobrado en el pasado.
