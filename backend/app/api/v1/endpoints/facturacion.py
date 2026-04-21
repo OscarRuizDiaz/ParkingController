@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.api.deps.permissions import require_permission
+from app.models.seguridad import Usuario
 from app.schemas.facturacion import FacturaCreate, FacturaResponse
 from app.services.facturacion_service import FacturacionService
 
@@ -9,7 +11,8 @@ router = APIRouter()
 @router.post("/emitir", response_model=FacturaResponse)
 def emitir_factura(
     factura_in: FacturaCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("facturacion.emitir"))
 ):
     """
     Emite una factura fiscal para un cobro registrado.

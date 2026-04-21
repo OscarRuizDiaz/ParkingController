@@ -11,9 +11,6 @@ export const PERMISSIONS = {
   CAJA_ARQUEO: 'caja.arqueo',
   CAJA_RESUMEN: 'caja.resumen',
 
-  // Maestros
-  MAESTROS_CAJAS_VIEW: 'maestros.cajas.view',
-  
   // Tickets
   TICKETS_VIEW: 'tickets.view',
   TICKETS_BUSCAR: 'tickets.buscar',
@@ -23,12 +20,6 @@ export const PERMISSIONS = {
   // Facturacion
   FACTURACION_VIEW: 'facturacion.view',
   FACTURACION_EMITIR: 'facturacion.emitir',
-  
-  // Clientes
-  CLIENTES_VIEW: 'clientes.view',
-  CLIENTES_BUSCAR: 'clientes.buscar',
-  CLIENTES_CREAR: 'clientes.crear',
-  CLIENTES_EDITAR: 'clientes.editar',
   
   // Tarifas
   TARIFAS_VIEW: 'tarifas.view',
@@ -48,8 +39,4 @@ export const PERMISSIONS = {
   USUARIOS_MANAGE: 'usuarios.manage',
   ROLES_VIEW: 'roles.view',
   ROLES_MANAGE: 'roles.manage',
-  
-  // Configuración
-  CONFIG_VIEW: 'config.view',
-  CONFIG_EDIT: 'config.edit'
 };

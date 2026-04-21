@@ -32,6 +32,8 @@ MASTER_CATALOG = [
     {"codigo": "usuarios.manage", "modulo": "usuarios", "desc": "Crear y editar usuarios"},
     {"codigo": "roles.view", "modulo": "roles", "desc": "Ver matriz de roles"},
     {"codigo": "roles.manage", "modulo": "roles", "desc": "Configurar permisos por rol"},
+    {"codigo": "facturacion.view", "modulo": "facturacion", "desc": "Acceder al módulo de facturación fiscal"},
+    {"codigo": "facturacion.emitir", "modulo": "facturacion", "desc": "Emitir comprobantes fiscales y facturas"},
 ]
 
 ASSIGNMENTS = {
@@ -39,11 +41,13 @@ ASSIGNMENTS = {
     "SUPERVISOR": [
         "dashboard.view", "caja.view", "caja.abrir", "caja.cerrar", "caja.gestion", "caja.cierre_forzado",
         "caja.arqueo", "caja.resumen", "tickets.crear", "tickets.view", "tickets.buscar", "tickets.simular", "tickets.cobrar",
-        "tarifas.view", "turnos.view", "turnos.manage", "reportes.view", "reportes.cierre_caja"
+        "tarifas.view", "turnos.view", "turnos.manage", "reportes.view", "reportes.cierre_caja",
+        "facturacion.view", "facturacion.emitir"
     ],
     "CAJERO": [
         "caja.view", "caja.abrir", "caja.cerrar", "caja.arqueo", "caja.resumen",
-        "tickets.crear", "tickets.view", "tickets.buscar", "tickets.simular", "tickets.cobrar", "turnos.view"
+        "tickets.crear", "tickets.view", "tickets.buscar", "tickets.simular", "tickets.cobrar", "turnos.view",
+        "facturacion.view", "facturacion.emitir"
     ]
 }
 

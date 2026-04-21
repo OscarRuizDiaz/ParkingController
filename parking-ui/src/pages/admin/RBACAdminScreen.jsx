@@ -19,7 +19,7 @@ import { PermissionGate } from '../../auth/PermissionGate';
 import { PERMISSIONS } from '../../auth/constants/permissions';
 
 const RBACAdminScreen = ({ setAlert }) => {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission, refreshUser } = useAuth();
   const [roles, setRoles] = useState([]);
   const [permisosMaster, setPermisosMaster] = useState([]);
   const [selectedRol, setSelectedRol] = useState(null);
@@ -113,6 +113,12 @@ const RBACAdminScreen = ({ setAlert }) => {
           ? { ...r, cantidad_permisos: updatedDetail.permisos.length }
           : r
       ));
+
+      // SI EL USUARIO AFECTADO ES EL ACTUAL, RE-SINCRONIZAMOS SESIÓN
+      if (selectedRol.nombre === user?.role) {
+        console.log("[RBAC] El rol modificado coincide con el del usuario actual. Ejecutando refreshUser...");
+        await refreshUser();
+      }
     } catch (err) {
       setAlert({ 
         title: 'Error al guardar', 
