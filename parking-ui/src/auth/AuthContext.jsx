@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   // Función de validación de permisos
   const hasPermission = useCallback((permission) => {
     if (!permission) return true;
-    return user?.permissions?.includes(permission) || false;
+    return user?.permisos?.includes(permission) || false;
   }, [user]);
 
   // Interceptor global para errores de autorización.

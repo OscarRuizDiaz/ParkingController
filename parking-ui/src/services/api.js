@@ -38,7 +38,19 @@ const handleResponse = async (response, fallbackMsg) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || fallbackMsg);
+    let msg = fallbackMsg;
+    
+    if (errorData.detail) {
+      if (typeof errorData.detail === 'string') {
+        msg = errorData.detail;
+      } else if (Array.isArray(errorData.detail)) {
+        // Unpack FastAPI validation errors
+        msg = errorData.detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join(' | ');
+      } else if (typeof errorData.detail === 'object') {
+        msg = JSON.stringify(errorData.detail);
+      }
+    }
+    throw new Error(msg);
   }
 
   return await response.json();
@@ -187,5 +199,47 @@ export const apiService = {
       body: JSON.stringify({ permisos })
     });
     return handleResponse(response, "Error actualizando permisos del rol");
+  },
+
+  // === USUARIOS ===
+  async usuarios_getLista() {
+    const response = await fetch(`${BASE_URL}/usuarios/`, { headers: getAuthHeaders() });
+    return handleResponse(response, "Error obteniendo lista de usuarios");
+  },
+
+  async usuarios_crear(payload) {
+    const response = await fetch(`${BASE_URL}/usuarios/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(response, "Error creando usuario");
+  },
+
+  async usuarios_update(id_usuario, payload) {
+    const response = await fetch(`${BASE_URL}/usuarios/${id_usuario}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(response, "Error actualizando usuario");
+  },
+
+  async usuarios_patchEstado(id_usuario, activo) {
+    const response = await fetch(`${BASE_URL}/usuarios/${id_usuario}/estado`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ activo })
+    });
+    return handleResponse(response, "Error cambiando estado del usuario");
+  },
+
+  async usuarios_resetPassword(id_usuario, nueva_password) {
+    const response = await fetch(`${BASE_URL}/usuarios/${id_usuario}/reset-password`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ nueva_password })
+    });
+    return handleResponse(response, "Error reseteando contraseña");
   }
 };

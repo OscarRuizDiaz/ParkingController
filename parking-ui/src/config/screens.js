@@ -5,7 +5,8 @@ import {
   Calculator, 
   Settings,
   Shield,
-  ShieldAlert
+  ShieldAlert,
+  Users
 } from "lucide-react";
 import { PERMISSIONS } from "../auth/constants/permissions";
 
@@ -58,6 +59,12 @@ export const SCREEN_CONFIG = [
     label: "Supervisión Cajas",
     icon: Shield,
     permission: PERMISSIONS.CAJA_GESTION
+  },
+  {
+    id: "usuarios",
+    label: "Gestión Personal",
+    icon: Users,
+    permission: PERMISSIONS.USUARIOS_VIEW
   },
   {
     id: "rbac_admin",

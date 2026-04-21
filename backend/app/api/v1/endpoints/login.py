@@ -31,9 +31,10 @@ def login_access_token(
             detail="Incorrect username or password",
         )
     elif not user.activo:
+        # CORRECCIÓN: Usar 401 para usuario inactivo para consistencia con la sesión
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario inactivo",
         )
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -42,13 +43,7 @@ def login_access_token(
             user.id_usuario, expires_delta=access_token_expires
         ),
         "token_type": "bearer",
-        "user": {
-            "id": user.id_usuario,
-            "username": user.username,
-            "nombre": user.nombre_completo,
-            "role": user.rol.nombre if user.rol else "CAJERO",
-            "permissions": [p.codigo for p in user.rol.permisos if p.activo] if user.rol else []
-        }
+        "user": UsuarioResponse.from_orm_model(user)
     }
 
 @router.get("/usuarios/me", response_model=UsuarioResponse)
@@ -58,10 +53,4 @@ def read_user_me(
     """
     Get current user.
     """
-    return {
-        "id": current_user.id_usuario,
-        "username": current_user.username,
-        "nombre": current_user.nombre_completo,
-        "role": current_user.rol.nombre if current_user.rol else "CAJERO",
-        "permissions": [p.codigo for p in current_user.rol.permisos if p.activo] if current_user.rol else []
-    }
+    return UsuarioResponse.from_orm_model(current_user)

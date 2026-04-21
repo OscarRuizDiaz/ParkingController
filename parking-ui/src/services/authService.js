@@ -22,14 +22,9 @@ export const authService = {
 
     const data = await response.json();
     
-    // Normalización Backend -> Frontend (id_usuario, username, nombre, role, permissions, token)
-    const userRole = data.user.role;
+    // Contrato Unificado Backend (id_usuario, username, nombre_completo, nombre_rol, permisos)
     return {
-      id_usuario: data.user.id,
-      username: data.user.username,
-      nombre: data.user.nombre,
-      role: userRole,
-      permissions: data.user.permissions || [],
+      ...data.user,
       token: data.access_token
     };
   },
@@ -48,14 +43,9 @@ export const authService = {
       if (!response.ok) return null;
 
       const userData = await response.json();
-      const userRole = userData.role;
       
       return {
-        id_usuario: userData.id,
-        username: userData.username,
-        nombre: userData.nombre,
-        role: userRole,
-        permissions: userData.permissions || [],
+        ...userData,
         token: token
       };
     } catch (e) {

@@ -30,6 +30,7 @@ MASTER_CATALOG = [
     {"codigo": "reportes.cierre_caja", "modulo": "reportes", "desc": "Generar reportes de cierre fiscales"},
     {"codigo": "usuarios.view", "modulo": "usuarios", "desc": "Ver listado de usuarios"},
     {"codigo": "usuarios.manage", "modulo": "usuarios", "desc": "Crear y editar usuarios"},
+    {"codigo": "usuarios.reset_password", "modulo": "usuarios", "desc": "Resetear contraseñas de otros usuarios"},
     {"codigo": "roles.view", "modulo": "roles", "desc": "Ver matriz de roles"},
     {"codigo": "roles.manage", "modulo": "roles", "desc": "Configurar permisos por rol"},
     {"codigo": "facturacion.view", "modulo": "facturacion", "desc": "Acceder al módulo de facturación fiscal"},
@@ -42,7 +43,8 @@ ASSIGNMENTS = {
         "dashboard.view", "caja.view", "caja.abrir", "caja.cerrar", "caja.gestion", "caja.cierre_forzado",
         "caja.arqueo", "caja.resumen", "tickets.crear", "tickets.view", "tickets.buscar", "tickets.simular", "tickets.cobrar",
         "tarifas.view", "turnos.view", "turnos.manage", "reportes.view", "reportes.cierre_caja",
-        "facturacion.view", "facturacion.emitir"
+        "facturacion.view", "facturacion.emitir",
+        "usuarios.view", "usuarios.manage", "usuarios.reset_password"
     ],
     "CAJERO": [
         "caja.view", "caja.abrir", "caja.cerrar", "caja.arqueo", "caja.resumen",

@@ -37,6 +37,7 @@ export const PERMISSIONS = {
   // Seguridad
   USUARIOS_VIEW: 'usuarios.view',
   USUARIOS_MANAGE: 'usuarios.manage',
+  USUARIOS_RESET_PASSWORD: 'usuarios.reset_password',
   ROLES_VIEW: 'roles.view',
   ROLES_MANAGE: 'roles.manage',
 };

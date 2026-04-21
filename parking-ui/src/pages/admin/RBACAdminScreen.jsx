@@ -115,7 +115,7 @@ const RBACAdminScreen = ({ setAlert }) => {
       ));
 
       // SI EL USUARIO AFECTADO ES EL ACTUAL, RE-SINCRONIZAMOS SESIÓN
-      if (selectedRol.nombre === user?.role) {
+      if (selectedRol.nombre === user?.nombre_rol) {
         console.log("[RBAC] El rol modificado coincide con el del usuario actual. Ejecutando refreshUser...");
         await refreshUser();
       }
