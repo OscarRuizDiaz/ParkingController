@@ -181,30 +181,32 @@ export default function App() {
     }
   }, [alert]);
 
-  const fetchTurnoActual = useCallback(async () => {
+  const fetchTurnoYResumen = useCallback(async () => {
     try {
-      const data = await apiService.caja_getActual();
-      setTurnoActual(data);
+      const turno = await apiService.caja_getActual();
+      setTurnoActual(turno);
+      
+      if (turno) {
+        try {
+          const resumen = await apiService.caja_getResumen();
+          setResumenTurno(resumen);
+        } catch (err) {
+          setResumenTurno(null);
+        }
+      } else {
+        setResumenTurno(null);
+      }
     } catch (err) {
       setTurnoActual(null);
-    }
-  }, []);
-
-  const fetchResumen = useCallback(async () => {
-    try {
-      const data = await apiService.caja_getResumen();
-      setResumenTurno(data);
-    } catch (err) {
       setResumenTurno(null);
     }
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchTurnoActual();
-      fetchResumen();
+      fetchTurnoYResumen();
     }
-  }, [isAuthenticated, fetchTurnoActual, fetchResumen]);
+  }, [isAuthenticated, fetchTurnoYResumen]);
 
   const handleResetOperation = useCallback(() => {
     setTicket(null);
@@ -290,7 +292,7 @@ export default function App() {
         type: "success"
       });
 
-      await Promise.all([fetchTurnoActual(), fetchResumen()]);
+      await fetchTurnoYResumen();
       setCurrentScreen("resultado");
       return true;
     } catch (err) {
@@ -334,8 +336,7 @@ export default function App() {
             resumen={resumenTurno}
             onTurnoChanged={setTurnoActual}
             onRefreshResumen={async () => {
-              await fetchTurnoActual();
-              await fetchResumen();
+              await fetchTurnoYResumen();
             }}
             onCierreSuccess={(res) => {
               // Limpiar estados operativos inmediatamente
@@ -395,7 +396,7 @@ export default function App() {
           />
         );
     }
-  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert, modoCalculo, manualMinutes, turnoActual, cierreResult, handleResetOperation, fetchResumen]);
+  }, [currentScreen, ticket, searchCode, medioPago, paymentResult, facturaResult, alert, modoCalculo, manualMinutes, turnoActual, cierreResult, handleResetOperation, fetchTurnoYResumen]);
 
   if (loading) {
     return (

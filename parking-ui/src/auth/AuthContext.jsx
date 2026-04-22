@@ -101,16 +101,10 @@ export const AuthProvider = ({ children }) => {
           logout();
         }
       } else if (response.status === 403) {
-        // Implementar un único reintento tras refrescar sesión
-        const options = args[1] || {};
-        if (!options._retry) {
-          console.warn("[Auth] 403 detectado. Intentando re-sincronización y reintento único...");
-          await refreshUser();
-          
-          // Clonar opciones y marcar para evitar bucles
-          const retryOptions = { ...options, _retry: true };
-          response = await originalFetch(args[0], retryOptions);
-        }
+        // NO reintentar automáticamente
+        // NO disparar re-sincronización de sesión
+        // El 403 debe tratarse como error de autorización (no de autenticación)
+        console.warn("[Auth] 403 detectado: Error de autorización. No se reintentará.");
       }
       
       return response;

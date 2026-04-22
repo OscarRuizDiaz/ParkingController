@@ -55,10 +55,12 @@ const UsersAdminScreen = ({ setAlert }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersData, rolesData] = await Promise.all([
-        apiService.usuarios_getLista(),
-        apiService.rbac_getRoles()
-      ]);
+      const usersPromise = apiService.usuarios_getLista();
+      const rolesPromise = hasPermission(PERMISSIONS.ROLES_VIEW) 
+        ? apiService.rbac_getRoles() 
+        : Promise.resolve([]);
+
+      const [usersData, rolesData] = await Promise.all([usersPromise, rolesPromise]);
       setUsuarios(usersData);
       setRoles(rolesData.filter(r => r.activo));
     } catch (err) {
