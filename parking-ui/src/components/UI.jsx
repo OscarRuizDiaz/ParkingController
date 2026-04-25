@@ -9,9 +9,11 @@ import {
 
 const formatter = new Intl.NumberFormat("es-PY");
 
-export function Money({ value }) {
-  const safeValue = Number(value ?? 0);
-  return <span>Gs. {formatter.format(Number.isNaN(safeValue) ? 0 : safeValue)}</span>;
+export function Money({ value, amount }) {
+  const val = value !== undefined ? value : amount;
+  const safeValue = Number(val ?? 0);
+  const finalValue = Number.isFinite(safeValue) ? safeValue : 0;
+  return <span>Gs. {formatter.format(finalValue)}</span>;
 }
 
 export function StatusAlert({ alert }) {

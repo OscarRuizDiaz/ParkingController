@@ -241,5 +241,53 @@ export const apiService = {
       body: JSON.stringify({ nueva_password })
     });
     return handleResponse(response, "Error reseteando contraseña");
+  },
+
+  // === REPORTES Y DASHBOARD ===
+  async getReporteFiltros() {
+    const response = await fetch(`${BASE_URL}/reportes/filtros`, { headers: getAuthHeaders() });
+    return handleResponse(response, "Error obteniendo filtros de reportes");
+  },
+
+  async getDashboardResumen(params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        queryParams.append(key, value);
+      }
+    });
+
+    const response = await fetch(`${BASE_URL}/reportes/dashboard/resumen?${queryParams.toString()}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response, "Error obteniendo resumen del dashboard");
+  },
+
+  async getReporteTurnos(params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        queryParams.append(key, value);
+      }
+    });
+
+    const response = await fetch(`${BASE_URL}/reportes/turnos?${queryParams.toString()}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response, "Error obteniendo reporte de turnos");
+  },
+
+  async getReporteCobros(params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        queryParams.append(key, value);
+      }
+    });
+
+    const response = await fetch(`${BASE_URL}/reportes/cobros?${queryParams.toString()}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response, "Error obteniendo reporte de cobros");
   }
 };

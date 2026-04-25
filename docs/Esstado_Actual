@@ -1,0 +1,194 @@
+# Documentación Integral y Auditoría Técnica: ParkingController
+
+## 1. Resumen ejecutivo del sistema
+
+**ParkingController** es un sistema POS (Point of Sale) y facturación para la gestión integral de un estacionamiento o red de estacionamientos. Su objetivo funcional es registrar ingresos y salidas de vehículos (mediante tickets), calcular automáticamente las tarifas de estadía, gestionar el cobro en distintos medios de pago, emitir facturas y mantener un control estricto sobre las cajas y turnos operativos.
+
+**Arquitectura General:**
+*   **Frontend:** React (Vite) con Tailwind CSS y Framer Motion para animaciones. Estado global manejado principalmente en `App.jsx` y propagado vía props. Sistema de routing manual basado en el estado `currentScreen`.
+*   **Backend:** FastAPI con Python, utilizando SQLAlchemy (modo síncrono) para el ORM y PostgreSQL/MySQL (vía URL de base de datos) como persistencia.
+*   **Seguridad:** RBAC (Role-Based Access Control) dinámico, completamente alojado en base de datos. Autenticación vía JWT (OAuth2 Password Bearer).
+
+**Estado actual real del proyecto:**
+El sistema ha dejado atrás la fase de MVP para consolidar una arquitectura de producción. La mayoría de los flujos críticos (cobro, turnos, RBAC, gestión de usuarios) han sido refactorizados para operar de manera robusta y 100% sincronizada entre el estado del Frontend y la base de datos del Backend. La deuda técnica de dependencias circulares y llamadas huérfanas a endpoints ha sido depurada recientemente.
+
+---
+
+## 2. Estado actual del desarrollo
+
+*   **Módulos Operativos (Estables y Refactorizados):**
+    *   **Autenticación y Sesión:** 100%
+    *   **Seguridad y RBAC:** 100% (Permisos dinámicos desde backend, con administración visual).
+    *   **Gestión de Personal (Usuarios):** 100% (CRUD, activación/desactivación, reseteo de claves).
+    *   **Gestión de Turnos y Caja:** 95% (Apertura, resumen operativo, cierre regular y cierre forzado operativo).
+    *   **Cobro y Tickets (POS):** 90% (Búsqueda automática y manual de tickets, cálculo de estancia, proceso de pago).
+*   **Módulos Parcialmente Operativos:**
+    *   **Facturación y Clientes:** 80% (Estructura creada, pantallas hechas, falta validar integración final fiscal si aplicase).
+    *   **Configuración de Tarifas:** 70% (Pantalla de tarifa activa disponible, motor `tarifador.py` en backend, falta soporte para múltiples esquemas tarifarios complejos).
+*   **Módulos Pendientes:**
+    *   **Reportes históricos y Dashboard gerencial:** No existen pantallas de reportes más allá de resúmenes de turno actuales.
+    *   **Integración de hardware:** (Impresoras térmicas, control de barreras) Actualmente funciona en modo web/software-only.
+
+---
+
+## 3. Arquitectura técnica
+
+### 3.1 Frontend
+*   Estructurado como una **Single Page Application (SPA)** centralizada.
+*   **`App.jsx`** actúa como el Shell y orquestador maestro. Maneja el estado global (`turnoActual`, `resumenTurno`, `ticket`, flujo de pantallas de cobro) para evitar problemas de _prop drilling_ en un proyecto de este tamaño, aunque centraliza demasiada lógica operativa.
+*   **Gestión de APIs:** Centralizada en `src/services/api.js` y `authService.js`.
+*   La UI está fuertemente acoplada a permisos visuales mediante componentes como `<PermissionGate>`.
+
+### 3.2 Backend
+Arquitectura por capas estricta y limpia (Domain-Driven estructurado):
+*   **API (`app/api/v1/`):** Rutas FastAPI, validan entrada/salida usando Pydantic schemas, inyectan dependencias de sesión y usuario actual.
+*   **Schemas (`app/schemas/`):** Contratos de datos (Pydantic).
+*   **Services (`app/services/`):** Lógica de negocio transaccional. No tocan la red, solo reglas puras y llamadas a repositorios.
+*   **Repositories (`app/repositories/`):** Patrón repositorio para aislar consultas SQLAlchemy.
+*   **Models (`app/models/`):** Definición declarativa de tablas de base de datos.
+
+### 3.3 RBAC y seguridad
+*   **El backend es la fuente de verdad.** Los permisos no están hardcodeados en frontend.
+*   Flujo: Al iniciar sesión, `/api/v1/login/access-token` retorna un token. Luego se llama a `/api/v1/login/me` para obtener el perfil del usuario **y su arreglo de permisos crudos**.
+*   Frontend inyecta estos permisos en `AuthContext` y expone el hook `hasPermission()`.
+*   El backend protege sus endpoints usando la dependencia `require_permission("modulo.accion")` en FastAPI.
+
+### 3.4 Contrato de datos frontend-backend
+*   Las excepciones de backend (HTTP 400, 401, 403, 404, 422) son atrapadas por el interceptor global `handleResponse` en `api.js` o en el `AuthContext`.
+*   Los errores de validación de FastAPI (`422 Unprocessable Entity`) son parseados para mostrar mensajes legibles en la UI.
+*   **Estados HTTP críticos:** `401` expulsa al usuario (logout), `403` genera error de autorización sin reintentos cíclicos (corregido recientemente).
+
+### 3.5 Flujo de sesión y autenticación
+*   Sesión persistida en `localStorage` (`parking_session_v1`).
+*   **Smart Polling:** `AuthContext` incluye un mecanismo de resincronización de sesión cada 60 segundos si la pestaña está activa, lo que permite revocar permisos en tiempo real sin requerir F5 por parte del usuario.
+
+---
+
+## 4. Inventario técnico del proyecto
+
+### Archivos críticos (Frontend)
+*   **`src/App.jsx`**: Punto de entrada de la UI autenticada. Contiene la máquina de estados implícita del flujo de caja (`caja` -> `resultado` -> `cliente` -> `cierre_resultado`).
+*   **`src/services/api.js`**: Diccionario de todas las llamadas de red (fetch) y su interceptor global de errores de negocio.
+*   **`src/auth/AuthContext.jsx`**: Maneja el estado de sesión `user`, token, funciones `login/logout`, el `fetch` monkey-patching para el 401/403 y el polling de sesión.
+*   **`src/config/screens.js`**: Configuración unificada de todas las pantallas, sus íconos, títulos y **permisos requeridos**. Alimenta el menú lateral.
+
+### Archivos críticos (Backend)
+*   **`app/api/v1/deps.py`** y **`app/api/deps/permissions.py`**: Inyectores de dependencias para validar tokens JWT y verificar permisos granulares en cada endpoint.
+*   **`app/services/ventas_service.py`**: Lógica densa de apertura/cierre de turnos de caja y cobros, validando arqueos y cálculos totales.
+*   **`app/services/tarifador.py`**: Motor de cálculo que evalúa minutos manuales o fechas de ingreso vs egreso para determinar montos a cobrar.
+*   **`app/rbac_seed.py`**: Script de población inicial de la base de datos con la jerarquía de roles (ADMINISTRADOR, SUPERVISOR, CAJERO) y sus permisos base.
+
+---
+
+## 5. Mapa de módulos funcionales
+
+### 5.1 Caja Principal (POS)
+*   **Propósito:** Escaneo de tickets, cálculo de tarifas y procesamiento de pago.
+*   **Estado:** Operativo (Refactorizado).
+*   **Pantallas:** `CajaPrincipal.jsx`, `ResultadoScreen.jsx`.
+*   **Dependencias:** Requiere que exista un `turnoActual` válido en `App.jsx`.
+*   **Permisos:** `CAJA_VIEW`.
+*   **Observaciones:** La búsqueda puede ser por ticket escaneado o ingreso manual de minutos. 
+
+### 5.2 Gestión de Turnos (Apertura y Cierre)
+*   **Propósito:** Control de efectivo, asignación de usuario a un punto de venta.
+*   **Estado:** Operativo.
+*   **Pantallas:** `TurnoScreen.jsx`, `CierreResultadoScreen.jsx`.
+*   **Dependencias:** Endpoints `/api/v1/ventas/caja/abrir`, `actual`, `resumen`, `cerrar`.
+*   **Permisos:** `TURNOS_VIEW`, `CAJA_ABRIR`, `CAJA_CERRAR`.
+*   **Observaciones:** La UI oculta dinámicamente el botón "Cerrar" si el usuario no tiene el permiso explícito.
+
+### 5.3 Supervisión de Cajas
+*   **Propósito:** Monitoreo de todas las cajas abiertas en tiempo real y capacidad de forzar el cierre administrativo de cajas abandonadas.
+*   **Estado:** Operativo.
+*   **Pantallas:** `SupervisionScreen.jsx`.
+*   **Permisos:** `CAJA_GESTION`, `CAJA_CIERRE_FORZADO`.
+*   **Observaciones:** Consume `/api/v1/ventas/caja/abiertas`. Permite auditar qué cajero olvidó cerrar sesión.
+
+### 5.4 Gestión de Usuarios y Personal
+*   **Propósito:** ABM de empleados, asignación de roles, activación/desactivación y reseteo forzado de contraseñas.
+*   **Estado:** Operativo.
+*   **Pantallas:** `admin/UsersAdminScreen.jsx`.
+*   **Permisos:** `USUARIOS_VIEW`, `USUARIOS_MANAGE`, `USUARIOS_RESET_PASSWORD`.
+*   **Observaciones:** Si un administrador edita o bloquea su propio usuario, la sesión del frontend se auto-sincroniza en tiempo real. Se corrigió un bug donde requería permisos de vista de roles implícitamente.
+
+### 5.5 Seguridad y Roles (RBAC)
+*   **Propósito:** Matriz dinámica para habilitar o deshabilitar permisos a nivel granular por rol.
+*   **Estado:** Operativo.
+*   **Pantallas:** `admin/RBACAdminScreen.jsx`.
+*   **Permisos:** `ROLES_VIEW`, `ROLES_MANAGE`.
+*   **Observaciones:** El rol `ADMINISTRADOR` está protegido en frontend y backend para evitar que el sistema se auto-bloquee (los permisos del administrador son inmutables o de solo lectura en la UI).
+
+---
+
+## 6. Hallazgos de auditoría
+
+### Riesgos Resueltos Recientemente (Ya no son deuda)
+*   **Orquestación de Caja (Stale State):** Se solucionó el problema crítico donde la UI enviaba llamadas a `/api/v1/ventas/caja/resumen` incluso si el cajero no tenía un turno abierto, saturando la consola de errores 404. Ahora, `App.jsx` maneja estrictamente un único orquestador (`fetchTurnoYResumen`).
+*   **Cascada de Errores RBAC (403):** Se eliminaron ciclos infinitos y reintentos donde un error `403 Forbidden` disparaba un relogin innecesario.
+*   **Fugas de Permisos en Tablas:** El consumo de catálogo de roles en mantenimiento de usuarios ahora valida condicionalmente el permiso `ROLES_VIEW` antes de hacer el request, evitando 403.
+
+### Deuda Técnica / Riesgos Actuales
+1.  **Sobrecarga de `App.jsx`:** El archivo principal asume responsabilidades de Context Provider, Router, Gestor de Estado de POS y Shell de Layout. Si el flujo POS crece (ej. devoluciones, múltiples medios de pago combinados, cortes parciales), será inmanejable. Debería refactorizarse a un `PosContext` dedicado.
+2.  **Hardcodeo de Configuración Fiscal:** La factura y cliente (`ClienteScreen.jsx`) parece manejar campos de facturación paraguaya (RUC), pero la lógica fiscal profunda (Timbrados, Facturación Electrónica SIFEN) probablemente requerirá una capa superior en el backend que aún no es visible.
+3.  **Falta de Websockets:** Si el Rol del usuario cambia por acción de un Administrador, el polling de 60s lo deslogueará o actualizará, pero no es instantáneo. 
+4.  **Impresión (Print):** El uso extensivo de clases `print:` de Tailwind es funcional para imprimir pantalla, pero muy frágil. Una actualización visual podría romper el formato de ticket térmico 80mm. Se requiere a futuro un módulo de generación PDF o comandos ESC/POS.
+
+---
+
+## 7. Reglas de arquitectura que deben respetarse
+
+Para mantener la integridad del sistema actual, cualquier desarrollador o IA debe regirse estrictamente por las siguientes reglas:
+
+1.  **No modificar el flujo de inicialización unificada de `App.jsx` sin justificación.** La lógica `fetchTurnoYResumen()` previene el desfasaje de estado.
+2.  **La única fuente de verdad de seguridad es el Backend.** El frontend (`hasPermission`) es solo para fines estéticos y de usabilidad (ocultar botones). Jamás asumir que el frontend protege una acción.
+3.  **Manejo de errores centralizado.** Todas las llamadas REST deben pasar por `handleResponse` en `api.js`. No inventar lógicas locales de `try-catch` que extraigan el `.json()` de las respuestas con error sin respetar el estándar dictado.
+4.  **No al Parche Aislado.** Si el UI falla esperando un estado de base de datos que no existe (ej. 404 en resumen de caja), no silencies el 404 ni ocultes el console.log. Corrige la **orquestación visual** para que no ejecute el endpoint si no se cumplen las condiciones de negocio.
+5.  **Patrón Repositorio y Servicio intacto.** En el backend, las transacciones (`db.commit()`) pertenecen a la capa de **Services**, no a los endpoints, ni a los repositorios.
+
+---
+
+## 8. Pendientes reales del sistema
+
+**Prioridad Alta:**
+1.  **Refactor del POS State:** Mover toda la lógica de `ticket`, `searchCode`, `paymentResult`, `facturaResult`, `modoCalculo` de `App.jsx` hacia un proveedor de estado (`PosProvider`).
+2.  **Reportes de Cierre Físico:** Implementar las tablas para auditoría visual de arqueo de cajas (histórico de turnos cerrados).
+
+**Prioridad Media:**
+1.  **Múltiples Tarifas:** Mejorar el motor `tarifador.py` para soportar esquemas de tarifas dinámicas (ej. primer hora Gs. 10.000, siguientes Gs. 5.000).
+2.  **Impresión de Tickets Raw:** Mover el soporte de impresión de CSS `print:` a una arquitectura más robusta.
+
+**Prioridad Baja:**
+1.  **Tests Automatizados:** Expandir las pruebas (actualmente sólo está `test_tarifador.py`) a los repositorios de ventas y RBAC.
+
+---
+
+## 9. Recomendaciones de continuidad
+
+1.  **NO TOCAR el módulo de caja / turnos actualmente.** Se encuentra altamente optimizado, estable y sincronizado.
+2.  **El siguiente paso lógico de desarrollo:** Enfocarse en el **módulo de reportes y dashboard**. Dado que todos los datos transaccionales, cierres y aperturas ahora son consistentes en la base de datos, construir consultas y analíticas es totalmente viable y seguro.
+3.  **Revisar el módulo de clientes y facturación (`facturacion.py`).** Validar que la persistencia de clientes por RUC/Documento no genere duplicados en base de datos al momento de emitir facturas sucesivas.
+
+---
+
+## 10. Anexo técnico
+
+### Tabla de Permisos Críticos (Catálogo)
+| Código de Permiso | Módulo | Descripción / Impacto |
+| :--- | :--- | :--- |
+| `caja.view` | VENTAS | Acceder al POS principal de la caja. |
+| `caja.gestion` | VENTAS | Supervisión de turnos de otras sucursales o cajeros. |
+| `caja.cierre_forzado` | VENTAS | Cerrar la sesión administrativa de terceros (Supervisores). |
+| `turnos.view` | CAJAS | Pantalla personal de apertura y arqueo de caja. |
+| `usuarios.manage` | ADMIN | Crear, modificar empleados. |
+| `roles.manage` | ADMIN | Modificar la matriz de seguridad del sistema (Riesgoso). |
+
+### Endpoints Vitales (Resumen)
+| Método | Ruta | Propósito | Reglas |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/login/access-token` | Autenticación | Retorna JWT |
+| `GET` | `/api/v1/login/me` | Sincronización | Retorna info vital y `permisos[]`. |
+| `GET` | `/api/v1/ventas/caja/actual` | Orquestación | Base del POS: Si retorna null, caja está cerrada. |
+| `POST` | `/api/v1/ventas/cobrar` | Transaccional | El motor core del negocio. Requiere turno abierto. |
+
+**FIN DE LA AUDITORÍA Y DOCUMENTACIÓN**

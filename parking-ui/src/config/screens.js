@@ -6,7 +6,9 @@ import {
   Settings,
   Shield,
   ShieldAlert,
-  Users
+  Users,
+  LayoutDashboard,
+  BarChart3
 } from "lucide-react";
 import { PERMISSIONS } from "../auth/constants/permissions";
 
@@ -71,6 +73,18 @@ export const SCREEN_CONFIG = [
     label: "Seguridad y Roles",
     icon: ShieldAlert,
     permission: PERMISSIONS.ROLES_VIEW
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard Gerencial",
+    icon: LayoutDashboard,
+    permission: PERMISSIONS.DASHBOARD_VIEW
+  },
+  {
+    id: "reportes",
+    label: "Reportes Históricos",
+    icon: BarChart3,
+    permission: PERMISSIONS.REPORTES_VIEW
   }
 ];
 

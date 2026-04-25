@@ -216,6 +216,15 @@ class VentasService:
             u_cierre = self.db.query(Usuario).get(turno.id_usuario_cierre)
             if u_cierre: usuario_cierre_nombre = u_cierre.nombre_completo
 
+        print(f"=== DEBUG get_resumen_turno ID {id_turno} ===")
+        print(f"Total Efectivo: {total_efectivo}")
+        print(f"Total Tarjeta: {total_tarjeta}")
+        print(f"Total Transferencia: {total_transferencia}")
+        print(f"Total Cobrado: {total_cobrado}")
+        print(f"Cantidad Tickets: {cantidad_cobros}")
+        print(f"Monto Inicial: {turno.monto_inicial}")
+        print("=========================================")
+
         return TurnoCajaResumenResponse(
             id_turno=turno.id_turno,
             id_caja=turno.id_caja,

@@ -10,7 +10,8 @@ from app.api.v1.endpoints import (
     caja,
     login,
     rbac,
-    usuarios
+    usuarios,
+    reportes
 )
 
 api_router = APIRouter()
@@ -24,3 +25,4 @@ api_router.include_router(tarifas.router, prefix="/tarifas", tags=["tarifas"])
 api_router.include_router(caja.router, prefix="/ventas/caja", tags=["caja"])
 api_router.include_router(rbac.router, prefix="/rbac", tags=["rbac"])
 api_router.include_router(usuarios.router, prefix="/usuarios", tags=["usuarios"])
+api_router.include_router(reportes.router, prefix="/reportes", tags=["reportes"])

@@ -32,9 +32,13 @@ class RepositorioTurno(BaseRepository[TurnoCaja]):
         )
 
     def get_total_por_medio_pago(self, db: Session, id_turno: int, medio_pago: str) -> Decimal:
-        """Suma el total cobrado por un medio de pago específico en un turno."""
+        """Suma el total cobrado por un medio de pago específico en un turno (seguro ante 0s)."""
+        from app.models.parking import Liquidacion
+        
         resultado = (
-            db.query(func.sum(Cobro.monto))
+            db.query(func.sum(func.coalesce(func.nullif(Cobro.monto, 0), Liquidacion.monto_bruto, 0)))
+            .select_from(Cobro)
+            .join(Liquidacion, Cobro.id_liquidacion == Liquidacion.id_liquidacion)
             .filter(Cobro.id_turno == id_turno)
             .filter(Cobro.medio_pago == medio_pago)
             .filter(Cobro.estado == 'COBRADO')

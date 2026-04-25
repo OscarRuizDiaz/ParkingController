@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { PermissionGate } from "./auth/PermissionGate";
 import { PERMISSIONS } from "./auth/constants/permissions";
 import { SCREEN_CONFIG, getScreenById } from './config/screens';
+import { eventBus, EVENTS } from './utils/eventBus';
 
 // Componentes UI compartidos
 import { Money, StatusAlert } from './components/UI';
@@ -22,6 +23,8 @@ import TarifaScreen from "./pages/TarifaScreen";
 import ResultadoScreen from "./pages/ResultadoScreen";
 import ClienteScreen from "./pages/ClienteScreen";
 import CierreResultadoScreen, { PrintableTurnoReport } from "./pages/CierreResultadoScreen";
+import DashboardGerencial from "./pages/DashboardGerencial";
+import Reportes from "./pages/Reportes";
 
 import {
   CarFront,
@@ -189,6 +192,7 @@ export default function App() {
       if (turno) {
         try {
           const resumen = await apiService.caja_getResumen();
+          console.log("RESUMEN OBTENIDO DESDE BACKEND:", resumen);
           setResumenTurno(resumen);
         } catch (err) {
           setResumenTurno(null);
@@ -293,6 +297,7 @@ export default function App() {
       });
 
       await fetchTurnoYResumen();
+      eventBus.emit(EVENTS.DATA_CHANGED);
       setCurrentScreen("resultado");
       return true;
     } catch (err) {
@@ -329,6 +334,10 @@ export default function App() {
         return <RBACAdminScreen setAlert={setAlert} />;
       case "usuarios":
         return <UsersAdminScreen setAlert={setAlert} />;
+      case "dashboard":
+        return <DashboardGerencial setAlert={setAlert} />;
+      case "reportes":
+        return <Reportes setAlert={setAlert} />;
       case "turno":
         return (
           <TurnoScreen
@@ -345,6 +354,7 @@ export default function App() {
               setTicket(null);
               // Registrar resultado y navegar
               setCierreResult(res);
+              eventBus.emit(EVENTS.DATA_CHANGED);
               setCurrentScreen("cierre_resultado");
             }}
             alert={alert}

@@ -41,3 +41,38 @@ def require_permission(codigo_permiso: str) -> Callable:
         return current_user
 
     return permission_dependency
+
+
+def require_any_permission(codigos_permiso: list[str]) -> Callable:
+    """
+    Factory que retorna una dependencia para validar si el usuario tiene al menos
+    uno de los permisos en la lista (Lógica OR).
+    """
+    def permission_dependency(
+        current_user: Usuario = Depends(get_current_user)
+    ) -> Usuario:
+        if not current_user.activo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuario inactivo"
+            )
+
+        rol = current_user.rol
+        if not rol or not rol.activo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El rol del usuario no está activo o no está asignado"
+            )
+
+        permisos = rol.permisos or []
+        codigos_usuario = {p.codigo for p in permisos if p.activo}
+        
+        if not any(codigo in codigos_usuario for codigo in codigos_permiso):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No autorizado para esta operación"
+            )
+
+        return current_user
+
+    return permission_dependency

@@ -148,12 +148,12 @@ const TurnoScreen = ({ turnoActual, resumen, onTurnoChanged, onRefreshResumen, o
             <Receipt className="h-5 w-5 text-slate-400" /> Resumen Operativo
           </h3>
           <div className="space-y-4">
-            <SummaryRow label="Monto Inicial" value={<Money value={resumen?.monto_inicial || 0} />} />
-            <SummaryRow label="Total Efectivo" value={<Money value={resumen?.total_efectivo || 0} />} />
-            <SummaryRow label="Total Transferencia" value={<Money value={resumen?.total_transferencia || 0} />} />
-            <SummaryRow label="Total Tarjeta" value={<Money value={resumen?.total_tarjeta || 0} />} />
+            <SummaryRow label="Monto Inicial" value={<Money value={Number(resumen?.monto_inicial || 0)} />} />
+            <SummaryRow label="Total Efectivo" value={<Money value={Number(resumen?.total_efectivo || 0)} />} />
+            <SummaryRow label="Total Transferencia" value={<Money value={Number(resumen?.total_transferencia || 0)} />} />
+            <SummaryRow label="Total Tarjeta" value={<Money value={Number(resumen?.total_tarjeta || 0)} />} />
             <hr className="border-dashed" />
-            <SummaryRow label="Gran Total Cobrado" value={<Money value={resumen?.total_cobrado || 0} />} strong />
+            <SummaryRow label="Gran Total Cobrado" value={<Money value={Number(resumen?.total_cobrado || 0)} />} strong />
             <SummaryRow label="Cantidad Tickets" value={resumen?.cantidad_cobros || 0} />
           </div>
         </div>
