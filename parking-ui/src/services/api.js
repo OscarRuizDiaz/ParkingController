@@ -2,7 +2,7 @@
  * Servicios para interactuar con la API del Backend Real.
  */
 
-const BASE_URL = "http://localhost:8000/api/v1";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 const getAuthHeaders = (extraHeaders = {}) => {
   const sessionStr = localStorage.getItem("parking_session_v1");

@@ -1,0 +1,22 @@
+services:
+  backend:
+    image: parkingcontroller-backend:test
+    container_name: parking_backend_vm
+    restart: always
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:a.123456@IP_PC_WINDOWS:5433/db_parking}
+      SECRET_KEY: ${SECRET_KEY:-valor_de_prueba}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      BACKEND_CORS_ORIGINS: '["*"]'
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: parkingcontroller-frontend:test
+    container_name: parking_frontend_vm
+    restart: always
+    ports:
+      - "8089:80"
+    depends_on:
+      - backend
