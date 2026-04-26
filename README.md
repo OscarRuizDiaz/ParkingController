@@ -1,115 +1,42 @@
-# ParkingController 🚗💨
+# ParkingController
 
-![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Frontend: React](https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Database: PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+ParkingController es un sistema integral para el control de estacionamientos y caja, con seguridad basada en roles (RBAC) dinámico, turnos, reportes y dashboards en tiempo real.
 
-**ParkingController** es una solución integral para el control de accesos, gestión de caja y comercialización de estacionamientos. El sistema destaca por su **RBAC Dinámico puro**, donde todos los permisos se gestionan desde el backend, permitiendo una administración granular de acceso a módulos y operaciones en tiempo real.
+## 🏗 Estado del Proyecto
 
----
+El proyecto se encuentra en estado estable, operando con un stack tecnológico sólido:
+- **Backend**: FastAPI, SQLAlchemy, PostgreSQL.
+- **Frontend Real**: React, Vite (Ubicado en la carpeta `parking-ui/`).
+- **Autenticación**: JWT con flujo Role-Based Access Control dinámico.
+- **Despliegue**: Dockerizado con Nginx como Reverse Proxy (Offline VM Deployment ready).
 
-## 🏗️ Arquitectura y Stack
+**¡Aviso Importante sobre la Estructura!**
+- El código **real** del frontend, incluyendo el Dashboard y lógica de negocio, se encuentra en `parking-ui/`.
+- La carpeta `frontend/` es un proyecto vacío/huérfano y **NO** debe usarse para despliegues.
 
-El sistema sigue una arquitectura moderna, desacoplada y orientada a la seguridad:
+## 🚀 Resumen Ejecutivo
 
-- **Backend**: Python 3.10+ con **FastAPI**. Implementa el patrón Repositorio y Servicio.
-- **Seguridad**: Autenticación JWT y **RBAC Dinámico** (Role-Based Access Control).
-- **Frontend**: **React** con Vite, Styled Components y diseño premium enfocado en UX administrativa.
-- **Base de Datos**: **PostgreSQL** con esquemas de base de datos separados (`parking`, `seguridad`).
+### 💻 Cómo correr local (Desarrollo)
+1. **Base de Datos**: PostgreSQL en `localhost:5433` (`db_parking`).
+2. **Backend**: `cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+3. **Frontend**: `cd parking-ui && npm install && npm run dev`. La app servirá en `http://localhost:5173`.
+*Para detalles exhaustivos, consulta [Desarrollo Local](docs/local_development.md).*
 
----
+### 🐳 Cómo correr en Docker / VM
+1. Construye el backend (`.\backend`) y el frontend (`.\parking-ui`).
+2. Exporta ambas imágenes usando `docker save`.
+3. Carga en tu VM Linux (`docker load`) y despliega usando `docker-compose up -d`. Nginx actuará como proxy para evitar problemas de CORS y ruteo.
+*Para detalles exhaustivos, consulta [Despliegue Offline en VM](docs/deployment_offline_vm.md).*
 
-## 🚀 Módulos Implementados
+## 📚 Documentación Técnica
 
-### 💼 Operación de Caja
-- **Apertura/Cierre de Turnos**: Control estricto de saldos y arqueos de caja.
-- **Cobro de Tickets**: Integración con el motor tarifario para liquidaciones precisas.
-- **Resumen Diario**: Reportes de ventas y movimientos de caja por turno.
+Todo el detalle paso a paso para desplegar, entender o desarrollar el sistema ha sido fragmentado en documentos especializados:
+1. [Arquitectura General](docs/architecture_overview.md)
+2. [Desarrollo Local](docs/local_development.md)
+3. [Guía de Pruebas Docker en VM](docs/docker_vm_test.md)
+4. [Despliegue Definitivo Offline](docs/deployment_offline_vm.md)
 
-### 🧮 Motor Tarifario & Tickets
-- **Ciclo de Vida del Ticket**: Estados (Pendiente, Liquidado, Cobrado, Facturado).
-- **Tarifación Flexible**: Modos de cálculo configurables en vivo (Bloque fijo, fraccionado, etc.).
-- **Facturación Fiscal**: Emisión de comprobantes asociados a cobros registrados.
-
-### 🔐 Seguridad & RBAC (Administración)
-- **Gestión de Roles**: Creación y edición de roles (ADMINISTRADOR, SUPERVISOR, CAJERO).
-- **Matriz de Permisos**: Edición granular de acceso por módulo desde el panel administrativo.
-- **Backend-Driven Security**: El frontend se adapta dinámicamente a la lista de `permissions` devuelta por la API tras el login.
-
----
-
-## 📁 Estructura del Proyecto
-
-```text
-ParkingController/
-├── backend/            # API FastAPI, Modelos, Servicios y Scripts
-│   ├── app/            # Código fuente principal
-│   │   ├── api/        # Endpoints y Dependencias (Auth/AuthZ)
-│   │   ├── models/     # Entidades SQLAlchemy (Esquemas: parking, seguridad)
-│   │   ├── services/   # Lógica de negocio (RBAC, Tarifas)
-│   │   └── schemas/    # Pydantic models (Validación)
-│   └── scripts/        # Herramientas de mantenimiento y migración
-├── parking-ui/         # Interfaz de Usuario en React/Vite
-│   ├── src/
-│   │   ├── auth/       # Hooks de acceso y PermissionGate
-│   │   ├── pages/      # Paneles funcionales y administrativos
-│   │   └── services/   # Clientes de API (axios/fetch)
-├── database/           # Scripts SQL y definiciones de esquemas
-└── docs/               # Documentación técnica extendida
-```
-
----
-
-## 🛠️ Instalación y Preparación
-
-### 1. Requisitos
-- Python 3.10+ y Node.js 18+.
-- PostgreSQL 14+.
-
-### 2. Base de Datos & RBAC
-Para preparar la infraestructura de seguridad inicial, ejecute:
-
-```bash
-# Crear base de datos y esquemas
-psql -U postgres -f database/fix_rbac_tables.sql
-
-# Poblar catálogo maestro y roles iniciales
-cd backend
-python app/rbac_seed.py
-```
-
-### 3. Ejecución Local
-**Backend:**
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-**Frontend:**
-```bash
-cd parking-ui
-npm install
-npm run dev
-```
-
----
-
-## 📚 Documentación Técnica Detallada
-
-1.  **[RBAC dinámico](docs/rbac.md)**: Funcionamiento interno del sistema de permisos.
-2.  **[Arquitectura Lógica](docs/arquitectura.md)**: Capas y flujo de datos.
-3.  **[API Reference](docs/api.md)**: Endpoints actuales (Incluye RBAC Admin).
-4.  **[Esquema de Base de Datos](docs/database.md)**: Tablas y relaciones.
-
----
-
-## 👨‍💻 Roadmap Actual
-- [x] Implementación de RBAC Dinámico.
-- [x] Front-end Administrativo de Seguridad.
-- [ ] Integración SIFEN (Facturación Electrónica).
-- [ ] Reconocimiento Automático de Matrículas (LPR).
-
----
-
-Desarrollado para el control eficiente y seguro de espacios comerciales. 🚗💨
+## 🔒 Notas de Seguridad Básica
+- Nunca commitear archivos `.env` a control de versiones.
+- Las contraseñas en bases de datos locales (`a.123456`) son estrictamente para pruebas. Deben cambiarse en producción.
+- El sistema RBAC maneja de forma asilada permisos; el frontend NUNCA debe hardcodear reglas de negocio para ocultar elementos, todo depende de los payloads JWT del backend.

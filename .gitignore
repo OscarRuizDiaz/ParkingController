@@ -1,2 +1,23 @@
+# Node
+node_modules
+dist
+
+# Python
+.venv
+__pycache__
+
+# OS / Misc
+logs
+*.log
+
+# Docker exports
 *.tar
 *.tar.gz
+
+# Environment files
+.env
+.idea
+.vscode
+*.swp
+*.tmp
+temp/
